@@ -111,7 +111,7 @@ export interface CraftProcess {
   glazes: GlazeColor[];
 }
 
-export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result';
+export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration';
 
 export interface ClayType {
   id: string;
@@ -203,4 +203,54 @@ export interface DetailData {
   color?: string;
   bgColor?: string;
   imagePrompt: string;
+}
+
+export interface RestorationFragment {
+  id: string;
+  targetX: number;
+  targetY: number;
+  targetRotation: number;
+  pathData: string;
+  width: number;
+  height: number;
+  color: string;
+}
+
+export interface RestorationArtifact {
+  id: string;
+  name: string;
+  era: string;
+  origin: string;
+  description: string;
+  shape: 'vase' | 'bowl' | 'jar' | 'plate' | 'teapot';
+  baseColor: string;
+  accentColor: string;
+  difficulty: 1 | 2 | 3;
+  fragments: RestorationFragment[];
+  outlinePath: string;
+  knowledge: {
+    title: string;
+    content: string[];
+  }[];
+  repairMethods: string[];
+  historicalValue: string;
+  imagePrompt: string;
+}
+
+export interface PlacedFragment {
+  id: string;
+  x: number;
+  y: number;
+  rotation: number;
+  isCorrect: boolean;
+  placementAccuracy: number;
+}
+
+export interface RestorationScore {
+  totalScore: number;
+  accuracyScore: number;
+  speedScore: number;
+  completenessScore: number;
+  grade: '修复大师' | '巧夺天工' | '匠心独运' | '初窥门径' | '尚需努力';
+  feedback: string;
 }

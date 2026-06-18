@@ -193,6 +193,15 @@ export interface PotteryResult {
   imagePrompt: string;
 }
 
+export interface LinkedArtifact {
+  id: string;
+  name: string;
+  originDynasty: string;
+  originKiln: string;
+  color: string;
+  description: string;
+}
+
 export interface DetailData {
   type: DetailType;
   id: string;
@@ -200,6 +209,7 @@ export interface DetailData {
   subtitle?: string;
   description: string;
   sections: { title: string; content: string[] }[];
+  linkedArtifacts?: LinkedArtifact[];
   color?: string;
   bgColor?: string;
   imagePrompt: string;

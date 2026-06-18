@@ -25,6 +25,7 @@ import type {
   CulturalInfluence,
   ExportedArtifact,
   DetailData,
+  LinkedArtifact,
 } from '@/types';
 
 interface Props {
@@ -138,6 +139,21 @@ export default function TradeSection({ onOpenDetail }: Props) {
 
   const handleOpenEventDetail = (event: TradeEvent) => {
     const loc = tradeData.locations.find(l => l.id === event.location);
+    const linkedArtifacts: LinkedArtifact[] = event.relatedArtifacts
+      .map((aid) => {
+        const art = tradeData.exportedArtifacts.find((a) => a.id === aid);
+        if (!art) return null;
+        return {
+          id: art.id,
+          name: art.name,
+          originDynasty: art.originDynasty,
+          originKiln: art.originKiln,
+          color: art.color,
+          description: art.description,
+        };
+      })
+      .filter(Boolean) as LinkedArtifact[];
+
     onOpenDetail({
       type: 'trade-event',
       id: event.id,
@@ -157,6 +173,7 @@ export default function TradeSection({ onOpenDetail }: Props) {
             }
           : null,
       ].filter(Boolean) as { title: string; content: string[] }[],
+      linkedArtifacts: linkedArtifacts.length > 0 ? linkedArtifacts : undefined,
       color: event.color,
       bgColor: `${event.color}15`,
       imagePrompt: event.imagePrompt,

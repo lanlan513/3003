@@ -1,14 +1,15 @@
 import { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, ArrowRight } from 'lucide-react';
 import type { DetailData } from '@/types';
 
 interface DetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   data: DetailData | null;
+  onOpenDetail?: (data: DetailData) => void;
 }
 
-export default function DetailModal({ isOpen, onClose, data }: DetailModalProps) {
+export default function DetailModal({ isOpen, onClose, data, onOpenDetail }: DetailModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -141,6 +142,86 @@ export default function DetailModal({ isOpen, onClose, data }: DetailModalProps)
                   </ul>
                 </div>
               ))}
+
+              {data.linkedArtifacts && data.linkedArtifacts.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span
+                      className="w-1.5 h-6 rounded-full"
+                      style={{ backgroundColor: data.color || '#C9A962' }}
+                    />
+                    <h4 className="font-serif text-lg font-semibold text-porcelain-inkbrown" style={{ fontFamily: '"Noto Serif SC", serif' }}>
+                      关联典型器物
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-5">
+                    {data.linkedArtifacts.map((artifact) => (
+                      <button
+                        key={artifact.id}
+                        onClick={() => {
+                          if (!onOpenDetail) return;
+                          import('@/data/trade').then(({ tradeData }) => {
+                            const full = tradeData.exportedArtifacts.find((a) => a.id === artifact.id);
+                            if (!full) return;
+                            onOpenDetail({
+                              type: 'exported-artifact',
+                              id: full.id,
+                              title: full.name,
+                              subtitle: `${full.originDynasty} · ${full.originKiln}`,
+                              description: full.description + '\n\n' + full.significance,
+                              sections: [
+                                {
+                                  title: '流传经过',
+                                  content: [
+                                    `产地：${full.originKiln}`,
+                                    `出土地：${full.discoveredIn}`,
+                                    `现存地点：${full.currentLocation}`,
+                                    `材质：${full.material}`,
+                                  ],
+                                },
+                                { title: '历史意义', content: [full.significance] },
+                              ],
+                              color: full.color,
+                              bgColor: `${full.color}15`,
+                              imagePrompt: full.imagePrompt,
+                            });
+                          });
+                        }}
+                        className="group text-left bg-porcelain-scroll/50 rounded-xl p-4 border border-porcelain-crackle/30 hover:shadow-md hover:border-porcelain-gold/40 transition-all duration-300"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className="w-12 h-12 rounded-lg flex-shrink-0 flex items-center justify-center"
+                            style={{ backgroundColor: `${artifact.color}20` }}
+                          >
+                            <div
+                              className="w-6 h-6 rounded-full"
+                              style={{
+                                background: `radial-gradient(circle at 30% 30%, ${artifact.color}50, ${artifact.color}80)`,
+                                boxShadow: `0 4px 12px ${artifact.color}30`,
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-serif text-sm font-bold text-porcelain-inkbrown group-hover:text-porcelain-youlihong transition-colors line-clamp-1" style={{ fontFamily: '"Noto Serif SC", serif' }}>
+                              {artifact.name}
+                            </h5>
+                            <div className="flex items-center gap-1.5 text-[10px] text-porcelain-inkbrown/50 mt-0.5">
+                              <span>{artifact.originDynasty}</span>
+                              <span>·</span>
+                              <span>{artifact.originKiln}</span>
+                            </div>
+                            <p className="text-[11px] text-porcelain-inkbrown/55 leading-relaxed line-clamp-2 mt-1">
+                              {artifact.description}
+                            </p>
+                          </div>
+                          <ArrowRight size={14} className="text-porcelain-inkbrown/20 group-hover:text-porcelain-gold group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-1" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

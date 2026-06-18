@@ -63,6 +63,7 @@ export default function Home() {
         isOpen={isModalOpen}
         onClose={handleCloseDetail}
         data={detailData}
+        onOpenDetail={handleOpenDetail}
       />
     </div>
   );

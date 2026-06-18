@@ -111,7 +111,7 @@ export interface CraftProcess {
   glazes: GlazeColor[];
 }
 
-export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration';
+export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact';
 
 export interface ClayType {
   id: string;
@@ -258,4 +258,94 @@ export interface RestorationScore {
   completenessScore: number;
   grade: '修复大师' | '巧夺天工' | '匠心独运' | '初窥门径' | '尚需努力';
   feedback: string;
+}
+
+export interface TradeLocation {
+  id: string;
+  name: string;
+  nameEn: string;
+  region: string;
+  lat: number;
+  lng: number;
+  description: string;
+  importance: 'primary' | 'secondary' | 'minor';
+  color: string;
+}
+
+export interface TradeRouteSegment {
+  from: string;
+  to: string;
+  distance: number;
+  duration: string;
+  hazards: string[];
+}
+
+export interface TradeRoute {
+  id: string;
+  name: string;
+  type: 'maritime' | 'land';
+  era: string;
+  startYear: number;
+  endYear: number;
+  color: string;
+  description: string;
+  history: string;
+  keyGoods: string[];
+  keyLocations: string[];
+  segments: TradeRouteSegment[];
+  culturalImpact: string[];
+  imagePrompt: string;
+}
+
+export interface CulturalInfluence {
+  id: string;
+  region: string;
+  country: string;
+  era: string;
+  influenceType: 'technology' | 'aesthetic' | 'social' | 'economic';
+  title: string;
+  description: string;
+  examples: string[];
+  artifacts: string[];
+  color: string;
+  imagePrompt: string;
+}
+
+export interface ExportedArtifact {
+  id: string;
+  name: string;
+  originDynasty: string;
+  originKiln: string;
+  discoveredIn: string;
+  currentLocation: string;
+  era: string;
+  description: string;
+  significance: string;
+  material: string;
+  color: string;
+  imagePrompt: string;
+}
+
+export interface TradeEvent {
+  id: string;
+  year: number;
+  yearDisplay: string;
+  title: string;
+  type: 'voyage' | 'treaty' | 'discovery' | 'diplomacy' | 'innovation' | 'commerce';
+  location: string;
+  participants: string[];
+  description: string;
+  impact: string;
+  relatedRoutes: string[];
+  relatedArtifacts: string[];
+  color: string;
+  imagePrompt: string;
+}
+
+export interface TradeData {
+  routes: TradeRoute[];
+  locations: TradeLocation[];
+  events: TradeEvent[];
+  culturalInfluences: CulturalInfluence[];
+  exportedArtifacts: ExportedArtifact[];
 }

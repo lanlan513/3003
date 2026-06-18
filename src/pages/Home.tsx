@@ -4,6 +4,7 @@ import HeroSection from '@/components/layout/HeroSection';
 import Footer from '@/components/layout/Footer';
 import HistorySection from '@/components/sections/HistorySection';
 import TimelineSection from '@/components/sections/TimelineSection';
+import TradeSection from '@/components/sections/TradeSection';
 import RegionsSection from '@/components/sections/RegionsSection';
 import ShapesSection from '@/components/sections/ShapesSection';
 import CraftsSection from '@/components/sections/CraftsSection';
@@ -42,6 +43,8 @@ export default function Home() {
         <HistorySection onOpenDetail={handleOpenDetail} />
 
         <TimelineSection onOpenDetail={handleOpenDetail} />
+
+        <TradeSection onOpenDetail={handleOpenDetail} />
 
         <RegionsSection onOpenDetail={handleOpenDetail} />
 

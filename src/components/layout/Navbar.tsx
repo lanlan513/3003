@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Scroll, Clock, MapPin, Layers, Flame, Sparkles } from 'lucide-react';
+import { Scroll, Clock, MapPin, Layers, Flame, Sparkles, Globe } from 'lucide-react';
 
 const navItems = [
   { id: 'history', label: '发展历史', icon: Clock },
+  { id: 'timeline', label: '陶瓷长廊', icon: Clock },
+  { id: 'trade', label: '贸易交流', icon: Globe },
   { id: 'regions', label: '主要产地', icon: MapPin },
   { id: 'shapes', label: '器型分类', icon: Layers },
   { id: 'crafts', label: '烧制工艺', icon: Flame },

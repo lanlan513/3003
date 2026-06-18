@@ -3,6 +3,7 @@ import Navbar from '@/components/layout/Navbar';
 import HeroSection from '@/components/layout/HeroSection';
 import Footer from '@/components/layout/Footer';
 import HistorySection from '@/components/sections/HistorySection';
+import TimelineSection from '@/components/sections/TimelineSection';
 import RegionsSection from '@/components/sections/RegionsSection';
 import ShapesSection from '@/components/sections/ShapesSection';
 import CraftsSection from '@/components/sections/CraftsSection';
@@ -37,6 +38,8 @@ export default function Home() {
         <HeroSection />
 
         <HistorySection onOpenDetail={handleOpenDetail} />
+
+        <TimelineSection onOpenDetail={handleOpenDetail} />
 
         <RegionsSection onOpenDetail={handleOpenDetail} />
 

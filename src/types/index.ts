@@ -1,3 +1,40 @@
+export interface TypicalArtifact {
+  name: string;
+  desc: string;
+  imagePrompt: string;
+}
+
+export interface GlazeFeature {
+  name: string;
+  color: string;
+  description: string;
+  formula?: string;
+}
+
+export interface CraftEvolution {
+  title: string;
+  description: string;
+  impact: string;
+}
+
+export interface TimelineDynasty {
+  id: string;
+  dynasty: string;
+  period: string;
+  year: string;
+  startYear: number;
+  endYear: number;
+  color: string;
+  summary: string;
+  description: string;
+  achievements: string[];
+  representative: { name: string; desc: string }[];
+  typicalArtifacts: TypicalArtifact[];
+  glazeFeatures: GlazeFeature[];
+  craftEvolutions: CraftEvolution[];
+  imagePrompt: string;
+}
+
 export interface HistoryPeriod {
   id: string;
   dynasty: string;
@@ -74,7 +111,7 @@ export interface CraftProcess {
   glazes: GlazeColor[];
 }
 
-export type DetailType = 'history' | 'region' | 'shape' | 'craft';
+export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution';
 
 export interface DetailData {
   type: DetailType;

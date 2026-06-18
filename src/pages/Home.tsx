@@ -7,6 +7,7 @@ import TimelineSection from '@/components/sections/TimelineSection';
 import RegionsSection from '@/components/sections/RegionsSection';
 import ShapesSection from '@/components/sections/ShapesSection';
 import CraftsSection from '@/components/sections/CraftsSection';
+import PotteryGameSection from '@/components/sections/PotteryGameSection';
 import DetailModal from '@/components/common/DetailModal';
 import type { DetailData } from '@/types';
 
@@ -46,6 +47,8 @@ export default function Home() {
         <ShapesSection onOpenDetail={handleOpenDetail} />
 
         <CraftsSection onOpenDetail={handleOpenDetail} />
+
+        <PotteryGameSection onOpenDetail={handleOpenDetail} />
       </main>
 
       <Footer />

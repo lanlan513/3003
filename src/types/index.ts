@@ -111,7 +111,87 @@ export interface CraftProcess {
   glazes: GlazeColor[];
 }
 
-export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution';
+export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result';
+
+export interface ClayType {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  properties: {
+    whiteness: number;
+    plasticity: number;
+    firingRange: [number, number];
+    texture: string;
+  };
+  impact: {
+    baseColor: string;
+    translucency: number;
+    texture: string;
+  };
+}
+
+export interface FormingMethod {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  properties: {
+    regularity: number;
+    artistry: number;
+    uniqueness: number;
+    difficulty: number;
+  };
+  typicalShapes: string[];
+}
+
+export interface FiringTemperature {
+  id: string;
+  name: string;
+  range: [number, number];
+  description: string;
+  color: string;
+  properties: {
+    porcelainization: number;
+    hardness: number;
+    glazeVibrancy: number;
+    riskFactor: number;
+  };
+}
+
+export interface PotterySelection {
+  clay: ClayType | null;
+  formingMethod: FormingMethod | null;
+  glaze: GlazeColor | null;
+  temperature: FiringTemperature | null;
+}
+
+export interface PotteryFlaw {
+  name: string;
+  description: string;
+  severity: 'minor' | 'major' | 'fatal';
+}
+
+export interface PotteryResult {
+  id: string;
+  overallScore: number;
+  qualityGrade: '精品' | '佳品' | '合格品' | '次品' | '废品';
+  glazeEffect: string;
+  colorDescription: string;
+  shapeQuality: string;
+  uniqueness: string;
+  flaws: PotteryFlaw[];
+  features: string[];
+  finalAppearance: {
+    primaryColor: string;
+    secondaryColor: string;
+    pattern: string;
+    texture: string;
+  };
+  story: string;
+  historicalReference: string;
+  imagePrompt: string;
+}
 
 export interface DetailData {
   type: DetailType;

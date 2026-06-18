@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Scroll, Clock, MapPin, Layers, Flame } from 'lucide-react';
+import { Scroll, Clock, MapPin, Layers, Flame, Sparkles } from 'lucide-react';
 
 const navItems = [
   { id: 'history', label: '发展历史', icon: Clock },
   { id: 'regions', label: '主要产地', icon: MapPin },
   { id: 'shapes', label: '器型分类', icon: Layers },
   { id: 'crafts', label: '烧制工艺', icon: Flame },
+  { id: 'pottery-game', label: '瓷火模拟', icon: Sparkles },
 ];
 
 export default function Navbar() {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { RotateCcw, RotateCw, Play, Clock, Check, X, Sparkles, Info, Award, Lightbulb, ChevronRight } from 'lucide-react';
+import { RotateCcw, RotateCw, Play, Clock, Check, X, Sparkles, Info, Award, Lightbulb, ChevronRight, AlertCircle } from 'lucide-react';
 import SectionTitle from '@/components/common/SectionTitle';
 import SealLabel from '@/components/common/SealLabel';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
@@ -11,6 +11,8 @@ import {
   calculateRestorationScore,
   checkCollision,
   restorationTips,
+  canvasToLocal,
+  localToCanvas,
 } from '@/data/restoration';
 import type {
   RestorationArtifact,
@@ -36,7 +38,7 @@ interface FragmentState extends RestorationFragment {
 
 const CANVAS_WIDTH = 500;
 const CANVAS_HEIGHT = 500;
-const SNAP_THRESHOLD = 15;
+const SNAP_THRESHOLD_LOCAL = 10;
 
 export default function RestorationSection({ onOpenDetail }: Props) {
   const [stage, setStage] = useState<GameStage>('ready');
@@ -48,11 +50,12 @@ export default function RestorationSection({ onOpenDetail }: Props) {
   const [score, setScore] = useState<RestorationScore | null>(null);
   const [showOutline, setShowOutline] = useState(true);
   const [currentTip, setCurrentTip] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const [collisionFlash, setCollisionFlash] = useState<string | null>(null);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const { ref, isVisible } = useScrollAnimation<HTMLDivElement>(0.1);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const collisionFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const tipInterval = setInterval(() => {
@@ -88,7 +91,12 @@ export default function RestorationSection({ onOpenDetail }: Props) {
   const startGame = useCallback(() => {
     const newArtifact = getRandomArtifact();
     setArtifact(newArtifact);
-    const shuffled = shuffleFragments(newArtifact.fragments, CANVAS_WIDTH, CANVAS_HEIGHT);
+    const shuffled = shuffleFragments(
+      newArtifact.fragments,
+      CANVAS_WIDTH,
+      CANVAS_HEIGHT,
+      newArtifact.displayTransform
+    );
     setFragments(
       shuffled.map((f) => ({
         ...f,
@@ -106,6 +114,8 @@ export default function RestorationSection({ onOpenDetail }: Props) {
     setFragments([]);
     setElapsedSeconds(0);
     setScore(null);
+    setDraggingId(null);
+    setCollisionFlash(null);
   }, []);
 
   const getSvgPoint = useCallback((clientX: number, clientY: number) => {
@@ -116,6 +126,20 @@ export default function RestorationSection({ onOpenDetail }: Props) {
     return { x, y };
   }, []);
 
+  const getPlacedFragments = useCallback((currentFragments: FragmentState[]) => {
+    return currentFragments.filter((f) => f.isPlaced);
+  }, []);
+
+  const triggerCollisionFlash = useCallback((id: string) => {
+    setCollisionFlash(id);
+    if (collisionFlashTimerRef.current) {
+      clearTimeout(collisionFlashTimerRef.current);
+    }
+    collisionFlashTimerRef.current = setTimeout(() => {
+      setCollisionFlash((cur) => (cur === id ? null : cur));
+    }, 350);
+  }, []);
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, frag: FragmentState) => {
       if (stage !== 'playing' || frag.isPlaced) return;
@@ -124,7 +148,6 @@ export default function RestorationSection({ onOpenDetail }: Props) {
       const point = getSvgPoint(e.clientX, e.clientY);
       setDraggingId(frag.id);
       setDragOffset({ x: point.x - frag.x, y: point.y - frag.y });
-      setIsDragging(true);
       (e.target as Element).setPointerCapture?.(e.pointerId);
     },
     [stage, getSvgPoint]
@@ -132,51 +155,100 @@ export default function RestorationSection({ onOpenDetail }: Props) {
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!draggingId || stage !== 'playing') return;
+      if (!draggingId || stage !== 'playing' || !artifact) return;
 
       const point = getSvgPoint(e.clientX, e.clientY);
-      const targetFrag = artifact?.fragments.find((f) => f.id === draggingId);
+      const transform = artifact.displayTransform;
+      const targetFrag = artifact.fragments.find((f) => f.id === draggingId);
 
-      setFragments((prev) =>
-        prev.map((f) => {
-          if (f.id !== draggingId) return f;
-          let newX = point.x - dragOffset.x;
-          let newY = point.y - dragOffset.y;
+      setFragments((prev) => {
+        const draggingFrag = prev.find((f) => f.id === draggingId);
+        if (!draggingFrag) return prev;
 
-          if (targetFrag) {
-            const dist = Math.sqrt(
-              Math.pow(newX - targetFrag.targetX, 2) + Math.pow(newY - targetFrag.targetY, 2)
-            );
-            if (dist < SNAP_THRESHOLD) {
-              newX = targetFrag.targetX;
-              newY = targetFrag.targetY;
-            }
+        let newCanvasX = point.x - dragOffset.x;
+        let newCanvasY = point.y - dragOffset.y;
+
+        newCanvasX = Math.max(30, Math.min(CANVAS_WIDTH - 30, newCanvasX));
+        newCanvasY = Math.max(30, Math.min(CANVAS_HEIGHT - 30, newCanvasY));
+
+        const localPos = canvasToLocal(newCanvasX, newCanvasY, transform);
+        let finalLocalX = localPos.x;
+        let finalLocalY = localPos.y;
+        let snapped = false;
+
+        if (targetFrag) {
+          const dist = Math.sqrt(
+            Math.pow(localPos.x - targetFrag.targetX, 2) +
+              Math.pow(localPos.y - targetFrag.targetY, 2)
+          );
+          if (dist < SNAP_THRESHOLD_LOCAL) {
+            finalLocalX = targetFrag.targetX;
+            finalLocalY = targetFrag.targetY;
+            snapped = true;
           }
+        }
 
-          newX = Math.max(f.width / 2, Math.min(CANVAS_WIDTH - f.width / 2, newX));
-          newY = Math.max(f.height / 2, Math.min(CANVAS_HEIGHT - f.height / 2, newY));
+        const finalCanvas = snapped
+          ? localToCanvas(targetFrag!.targetX, targetFrag!.targetY, transform)
+          : { x: newCanvasX, y: newCanvasY };
 
-          return { ...f, x: newX, y: newY };
-        })
-      );
+        const testFragmentAABB = {
+          x: finalCanvas.x,
+          y: finalCanvas.y,
+          width: draggingFrag.width * transform.scale,
+          height: draggingFrag.height * transform.scale,
+          rotation: draggingFrag.rotation,
+          scale: 1,
+        };
+
+        const collides = prev.some((other) => {
+          if (other.id === draggingId || !other.isPlaced) return false;
+          const otherAABB = {
+            x: other.x,
+            y: other.y,
+            width: other.width * transform.scale,
+            height: other.height * transform.scale,
+            rotation: other.rotation,
+            scale: 1,
+          };
+          return checkCollision(testFragmentAABB, otherAABB);
+        });
+
+        if (collides && !snapped) {
+          triggerCollisionFlash(draggingId);
+          return prev;
+        }
+        if (collides && snapped) {
+          triggerCollisionFlash(draggingId);
+        }
+
+        return prev.map((f) =>
+          f.id === draggingId
+            ? { ...f, x: finalCanvas.x, y: finalCanvas.y }
+            : f
+        );
+      });
     },
-    [draggingId, dragOffset, artifact, stage, getSvgPoint]
+    [draggingId, dragOffset, artifact, stage, getSvgPoint, triggerCollisionFlash]
   );
 
   const handlePointerUp = useCallback(() => {
     if (!draggingId || !artifact) {
       setDraggingId(null);
-      setIsDragging(false);
       return;
     }
 
-    const draggingFrag = fragments.find((f) => f.id === draggingId);
-    const targetFrag = artifact.fragments.find((f) => f.id === draggingId);
+    const transform = artifact.displayTransform;
 
-    if (draggingFrag && targetFrag) {
+    setFragments((prev) => {
+      const draggingFrag = prev.find((f) => f.id === draggingId);
+      const targetFrag = artifact.fragments.find((f) => f.id === draggingId);
+      if (!draggingFrag || !targetFrag) return prev;
+
+      const localPos = canvasToLocal(draggingFrag.x, draggingFrag.y, transform);
       const accuracy = calculatePlacementAccuracy(
-        draggingFrag.x,
-        draggingFrag.y,
+        localPos.x,
+        localPos.y,
         draggingFrag.rotation,
         targetFrag.targetX,
         targetFrag.targetY,
@@ -184,64 +256,121 @@ export default function RestorationSection({ onOpenDetail }: Props) {
       );
       const correct = isPlacementCorrect(accuracy);
 
-      if (correct) {
-        setFragments((prev) =>
-          prev.map((f) =>
-            f.id === draggingId
-              ? {
-                  ...f,
-                  x: targetFrag.targetX,
-                  y: targetFrag.targetY,
-                  rotation: targetFrag.targetRotation,
-                  isPlaced: true,
-                  placementAccuracy: accuracy,
-                }
-              : f
-          )
-        );
+      if (!correct) {
+        setDraggingId(null);
+        return prev;
       }
-    }
 
-    setDraggingId(null);
-    setIsDragging(false);
-  }, [draggingId, fragments, artifact]);
+      const targetCanvas = localToCanvas(targetFrag.targetX, targetFrag.targetY, transform);
+      const placedCandidate = {
+        x: targetCanvas.x,
+        y: targetCanvas.y,
+        width: draggingFrag.width * transform.scale,
+        height: draggingFrag.height * transform.scale,
+        rotation: targetFrag.targetRotation,
+        scale: 1,
+      };
+
+      const hasCollision = getPlacedFragments(prev).some((p) => {
+        const placedAABB = {
+          x: p.x,
+          y: p.y,
+          width: p.width * transform.scale,
+          height: p.height * transform.scale,
+          rotation: p.rotation,
+          scale: 1,
+        };
+        return checkCollision(placedCandidate, placedAABB);
+      });
+
+      if (hasCollision) {
+        triggerCollisionFlash(draggingId);
+        setDraggingId(null);
+        return prev;
+      }
+
+      setDraggingId(null);
+      return prev.map((f) =>
+        f.id === draggingId
+          ? {
+              ...f,
+              x: targetCanvas.x,
+              y: targetCanvas.y,
+              rotation: targetFrag.targetRotation,
+              isPlaced: true,
+              placementAccuracy: accuracy,
+            }
+          : f
+      );
+    });
+  }, [draggingId, artifact, getPlacedFragments, triggerCollisionFlash]);
 
   const rotateFragment = useCallback(
     (fragId: string, direction: 1 | -1) => {
-      if (stage !== 'playing') return;
+      if (stage !== 'playing' || !artifact) return;
 
-      setFragments((prev) =>
-        prev.map((f) => {
-          if (f.id !== fragId || f.isPlaced) return f;
-          const newRotation = (f.rotation + direction * 15 + 360) % 360;
+      setFragments((prev) => {
+        const targetFrag = artifact.fragments.find((t) => t.id === fragId);
+        const transform = artifact.displayTransform;
+        const frag = prev.find((f) => f.id === fragId);
+        if (!frag || frag.isPlaced) return prev;
 
-          const targetFrag = artifact?.fragments.find((t) => t.id === fragId);
-          if (targetFrag) {
-            const accuracy = calculatePlacementAccuracy(
-              f.x,
-              f.y,
-              newRotation,
-              targetFrag.targetX,
-              targetFrag.targetY,
-              targetFrag.targetRotation
-            );
-            if (isPlacementCorrect(accuracy)) {
-              return {
-                ...f,
-                x: targetFrag.targetX,
-                y: targetFrag.targetY,
-                rotation: targetFrag.targetRotation,
-                isPlaced: true,
-                placementAccuracy: accuracy,
+        const newRotation = (frag.rotation + direction * 15 + 360) % 360;
+
+        if (targetFrag) {
+          const localPos = canvasToLocal(frag.x, frag.y, transform);
+          const accuracy = calculatePlacementAccuracy(
+            localPos.x,
+            localPos.y,
+            newRotation,
+            targetFrag.targetX,
+            targetFrag.targetY,
+            targetFrag.targetRotation
+          );
+          if (isPlacementCorrect(accuracy)) {
+            const targetCanvas = localToCanvas(targetFrag.targetX, targetFrag.targetY, transform);
+            const placedCandidate = {
+              x: targetCanvas.x,
+              y: targetCanvas.y,
+              width: frag.width * transform.scale,
+              height: frag.height * transform.scale,
+              rotation: targetFrag.targetRotation,
+              scale: 1,
+            };
+            const hasCollision = getPlacedFragments(prev).some((p) => {
+              const placedAABB = {
+                x: p.x,
+                y: p.y,
+                width: p.width * transform.scale,
+                height: p.height * transform.scale,
+                rotation: p.rotation,
+                scale: 1,
               };
+              return checkCollision(placedCandidate, placedAABB);
+            });
+            if (!hasCollision) {
+              return prev.map((f) =>
+                f.id === fragId
+                  ? {
+                      ...f,
+                      x: targetCanvas.x,
+                      y: targetCanvas.y,
+                      rotation: targetFrag.targetRotation,
+                      isPlaced: true,
+                      placementAccuracy: accuracy,
+                    }
+                  : f
+              );
+            } else {
+              triggerCollisionFlash(fragId);
             }
           }
+        }
 
-          return { ...f, rotation: newRotation };
-        })
-      );
+        return prev.map((f) => (f.id === fragId ? { ...f, rotation: newRotation } : f));
+      });
     },
-    [stage, artifact]
+    [stage, artifact, getPlacedFragments, triggerCollisionFlash]
   );
 
   useEffect(() => {
@@ -259,10 +388,10 @@ export default function RestorationSection({ onOpenDetail }: Props) {
   }, [stage, fragments, draggingId, rotateFragment]);
 
   useEffect(() => {
-    if (stage !== 'playing' || fragments.length === 0) return;
+    if (stage !== 'playing' || fragments.length === 0 || !artifact) return;
 
     const allPlaced = fragments.every((f) => f.isPlaced);
-    if (allPlaced && artifact) {
+    if (allPlaced) {
       const placedData: PlacedFragment[] = fragments.map((f) => ({
         id: f.id,
         x: f.x,
@@ -274,7 +403,7 @@ export default function RestorationSection({ onOpenDetail }: Props) {
 
       const result = calculateRestorationScore(placedData, fragments.length, elapsedSeconds);
       setScore(result);
-      setStage('finished');
+      setTimeout(() => setStage('finished'), 500);
     }
   }, [fragments, stage, artifact, elapsedSeconds]);
 
@@ -317,6 +446,10 @@ export default function RestorationSection({ onOpenDetail }: Props) {
     '尚需努力': { bg: '#F8E8E8', text: '#A83232', border: '#A83232' },
   };
 
+  const outlineTransform = artifact
+    ? `translate(${artifact.displayTransform.offsetX}, ${artifact.displayTransform.offsetY}) scale(${artifact.displayTransform.scale})`
+    : '';
+
   return (
     <section id="restoration" className="section-padding bg-gradient-to-b from-porcelain-paper to-porcelain-scroll/40 relative overflow-hidden">
       <div className="absolute top-0 left-0 w-96 h-96 bg-porcelain-gold/5 rounded-full blur-3xl" />
@@ -341,7 +474,7 @@ export default function RestorationSection({ onOpenDetail }: Props) {
                   古陶瓷修复体验
                 </h3>
                 <p className="text-sm text-porcelain-inkbrown/65 leading-relaxed max-w-3xl" style={{ fontFamily: '"Noto Serif SC", serif' }}>
-                  拖拽瓷器碎片至正确位置，旋转调整角度。当碎片接近目标位置时会自动吸附对齐。所有碎片归位后，将展示器物的完整信息与修复知识。
+                  拖拽瓷器碎片至画面虚线轮廓中的对应位置，接近目标时会自动吸附。正确归位后碎片会锁定并发出金色光晕。所有碎片归位后，将展示器物的完整信息与修复知识。
                 </p>
               </div>
             </div>
@@ -351,22 +484,22 @@ export default function RestorationSection({ onOpenDetail }: Props) {
                 <div className="w-32 h-32 mx-auto mb-6 relative">
                   <svg viewBox="0 0 100 100" className="w-full h-full">
                     <defs>
-                      <linearGradient id="restVaseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <linearGradient id="restVaseGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#E8E4D8" />
                         <stop offset="100%" stopColor="#D4C8A8" />
                       </linearGradient>
                     </defs>
                     <path
-                      d="M 45 12 L 55 12 L 53 22 Q 70 28 66 55 Q 64 85 50 92 Q 36 85 34 55 Q 30 28 47 22 Z"
+                      d="M 47 10 L 57 10 L 55 22 Q 72 28 68 56 Q 66 88 50 95 Q 34 88 32 56 Q 28 28 45 22 Z"
                       fill="none"
                       stroke="#C9A962"
-                      strokeWidth="2"
-                      strokeDasharray="4 3"
+                      strokeWidth="2.2"
+                      strokeDasharray="5 3"
                       className="animate-pulse"
                     />
-                    <path d="M 45 12 L 55 12 L 54 25 L 48 22 Z" fill="url(#restVaseGrad)" transform="translate(-5, -3) rotate(-10, 50, 20)" />
-                    <path d="M 50 22 Q 65 28 62 50 L 52 48 Z" fill="url(#restVaseGrad)" transform="translate(8, 2) rotate(8, 55, 35)" />
-                    <path d="M 40 50 Q 38 75 50 88 L 58 70 Z" fill="url(#restVaseGrad)" transform="translate(3, 8)" />
+                    <path d="M 47 10 L 57 10 L 56 25 L 50 22 Z" fill="url(#restVaseGrad2)" transform="translate(-5, -3) rotate(-10, 50, 20)" />
+                    <path d="M 50 22 Q 68 28 64 52 L 54 50 Z" fill="url(#restVaseGrad2)" transform="translate(8, 2) rotate(8, 55, 35)" />
+                    <path d="M 40 50 Q 38 76 50 90 L 58 72 Z" fill="url(#restVaseGrad2)" transform="translate(3, 8)" />
                   </svg>
                 </div>
                 <h4
@@ -376,7 +509,7 @@ export default function RestorationSection({ onOpenDetail }: Props) {
                   准备好了吗？
                 </h4>
                 <p className="text-sm text-porcelain-inkbrown/60 mb-8 max-w-md mx-auto leading-relaxed" style={{ fontFamily: '"Noto Serif SC", serif' }}>
-                  系统将随机为您分配一件需要修复的珍贵古瓷。请仔细观察碎片特征，将它们一一归位，重现国宝风采。
+                  系统将随机为您分配一件需要修复的珍贵古瓷。请参考中央的轮廓提示，仔细观察碎片特征，将它们一一归位，重现国宝风采。
                 </p>
                 <div className="flex items-center justify-center gap-2 mb-8 p-4 bg-porcelain-scroll/50 rounded-xl max-w-md mx-auto">
                   <Lightbulb size={18} className="text-porcelain-gold flex-shrink-0" />
@@ -400,7 +533,20 @@ export default function RestorationSection({ onOpenDetail }: Props) {
                 <div className="lg:col-span-3">
                   <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                     <div className="flex items-center gap-3">
-                      <SealLabel text={artifact.shape === 'vase' ? '瓶' : artifact.shape === 'bowl' ? '洗' : artifact.shape === 'jar' ? '俑' : artifact.shape === 'plate' ? '盘' : '壶'} size="sm" />
+                      <SealLabel
+                        text={
+                          artifact.shape === 'vase'
+                            ? '瓶'
+                            : artifact.shape === 'bowl'
+                            ? '洗'
+                            : artifact.shape === 'jar'
+                            ? '俑'
+                            : artifact.shape === 'plate'
+                            ? '盘'
+                            : '壶'
+                        }
+                        size="sm"
+                      />
                       <div>
                         <h4
                           className="font-serif font-bold text-porcelain-inkbrown"
@@ -413,7 +559,7 @@ export default function RestorationSection({ onOpenDetail }: Props) {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1.5 px-3 py-1.5 bg-porcelain-scroll/60 rounded-lg">
                         <Clock size={14} className="text-porcelain-inkbrown/60" />
                         <span className="text-sm font-mono font-bold text-porcelain-inkbrown">
@@ -428,8 +574,12 @@ export default function RestorationSection({ onOpenDetail }: Props) {
                       </div>
                       <button
                         onClick={() => setShowOutline((v) => !v)}
-                        className={`p-2 rounded-lg transition-colors ${showOutline ? 'bg-porcelain-ji-blue/15 text-porcelain-ji-blue' : 'bg-porcelain-crackle/30 text-porcelain-inkbrown/50'}`}
-                        title={showOutline ? '隐藏轮廓' : '显示轮廓'}
+                        className={`p-2 rounded-lg transition-colors ${
+                          showOutline
+                            ? 'bg-porcelain-ji-blue/15 text-porcelain-ji-blue'
+                            : 'bg-porcelain-crackle/30 text-porcelain-inkbrown/50'
+                        }`}
+                        title={showOutline ? '隐藏轮廓提示' : '显示轮廓提示'}
                       >
                         <Info size={16} />
                       </button>
@@ -447,92 +597,113 @@ export default function RestorationSection({ onOpenDetail }: Props) {
                       onPointerCancel={handlePointerUp}
                     >
                       <defs>
-                        <pattern id="canvasGrid" width="25" height="25" patternUnits="userSpaceOnUse">
-                          <path d="M 25 0 L 0 0 0 25" fill="none" stroke="#D4C8A8" strokeWidth="0.5" opacity="0.3" />
+                        <pattern id="canvasGrid2" width="25" height="25" patternUnits="userSpaceOnUse">
+                          <path
+                            d="M 25 0 L 0 0 0 25"
+                            fill="none"
+                            stroke="#D4C8A8"
+                            strokeWidth="0.5"
+                            opacity="0.3"
+                          />
                         </pattern>
-                        <filter id="fragmentShadow">
+                        <filter id="fragmentShadow2">
                           <feDropShadow dx="1" dy="2" stdDeviation="2" floodColor="#3D2B1F" floodOpacity="0.25" />
                         </filter>
-                        <filter id="placedGlow">
-                          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#C9A962" floodOpacity="0.5" />
+                        <filter id="placedGlow2">
+                          <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#C9A962" floodOpacity="0.6" />
+                        </filter>
+                        <filter id="collisionShake">
+                          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#A83232" floodOpacity="0.7" />
                         </filter>
                       </defs>
 
-                      <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#canvasGrid)" />
+                      <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#canvasGrid2)" />
 
-                      {showOutline && (
-                        <g transform="translate(50, 140) scale(3.2)" opacity={stage === 'finished' ? 0.3 : 0.4}>
+                      <g transform={outlineTransform}>
+                        {showOutline && (
                           <path
                             d={artifact.outlinePath}
-                            fill="none"
+                            fill={artifact.baseColor}
+                            fillOpacity={stage === 'finished' ? '0.55' : '0.12'}
                             stroke={artifact.accentColor}
-                            strokeWidth="1.2"
-                            strokeDasharray="6 4"
+                            strokeWidth={stage === 'finished' ? 0.6 : 1.2}
+                            strokeDasharray={stage === 'finished' ? '0' : '6 4'}
+                            className={stage === 'finished' ? 'animate-fade-in' : ''}
                           />
-                        </g>
-                      )}
+                        )}
 
-                      {stage === 'finished' && artifact && (
-                        <g transform="translate(50, 140) scale(3.2)" className="animate-fade-in">
-                          <defs>
-                            <linearGradient id={`finishedGrad-${artifact.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor={artifact.baseColor} stopOpacity="0.9" />
-                              <stop offset="100%" stopColor={artifact.baseColor} stopOpacity="0.7" />
-                            </linearGradient>
-                          </defs>
-                          <path
-                            d={artifact.outlinePath}
-                            fill={`url(#finishedGrad-${artifact.id})`}
-                            stroke={artifact.accentColor}
-                            strokeWidth="0.8"
-                            opacity="0.6"
-                          />
-                        </g>
-                      )}
-
-                      {fragments
-                        .slice()
-                        .sort((a, b) => {
-                          if (a.isPlaced && !b.isPlaced) return -1;
-                          if (!a.isPlaced && b.isPlaced) return 1;
-                          if (a.id === draggingId) return 1;
-                          return 0;
-                        })
-                        .map((frag) => (
-                          <g
-                            key={frag.id}
-                            transform={`translate(${frag.x - 50}, ${frag.y - 50}) rotate(${frag.rotation}, 50, 50)`}
-                            style={{
-                              cursor: stage === 'playing' && !frag.isPlaced ? 'grab' : 'default',
-                              touchAction: 'none',
-                            }}
-                            onPointerDown={(e) => handlePointerDown(e, frag)}
-                          >
-                            <g transform="translate(50, 50)">
-                              <g transform={`translate(${-frag.width / 2}, ${-frag.height / 2})`}>
-                                <path
-                                  d={frag.pathData}
-                                  fill={frag.color}
-                                  stroke={frag.isPlaced ? artifact.accentColor : draggingId === frag.id ? '#C9A962' : '#8B7355'}
-                                  strokeWidth={frag.isPlaced ? 1.5 : draggingId === frag.id ? 2.5 : 1.2}
-                                  filter={frag.isPlaced ? 'url(#placedGlow)' : 'url(#fragmentShadow)'}
-                                  opacity={frag.isPlaced ? 0.95 : draggingId === frag.id ? 1 : 0.92}
-                                  className={draggingId === frag.id ? 'scale-[1.03]' : ''}
-                                  style={{ transition: draggingId === frag.id ? 'none' : 'opacity 0.2s' }}
-                                />
-                                <path
-                                  d={frag.pathData}
-                                  fill="none"
-                                  stroke="white"
-                                  strokeWidth="0.5"
-                                  opacity="0.4"
-                                  transform="translate(-0.5, -0.5)"
-                                />
+                        {fragments
+                          .slice()
+                          .sort((a, b) => {
+                            if (a.isPlaced && !b.isPlaced) return -1;
+                            if (!a.isPlaced && b.isPlaced) return 1;
+                            if (a.id === draggingId) return 1;
+                            return 0;
+                          })
+                          .map((frag) => {
+                            const fragLocal = canvasToLocal(frag.x, frag.y, artifact.displayTransform);
+                            const isFlash = collisionFlash === frag.id;
+                            return (
+                              <g
+                                key={frag.id}
+                                style={{
+                                  cursor: stage === 'playing' && !frag.isPlaced ? 'grab' : 'default',
+                                  touchAction: 'none',
+                                }}
+                              >
+                                <g
+                                  transform={`translate(${fragLocal.x}, ${fragLocal.y}) rotate(${frag.rotation})`}
+                                  onPointerDown={(e) => handlePointerDown(e, frag)}
+                                >
+                                  <path
+                                    d={frag.pathData}
+                                    fill={frag.color}
+                                    stroke={
+                                      frag.isPlaced
+                                        ? artifact.accentColor
+                                        : isFlash
+                                        ? '#A83232'
+                                        : draggingId === frag.id
+                                        ? '#C9A962'
+                                        : '#8B7355'
+                                    }
+                                    strokeWidth={
+                                      frag.isPlaced ? 0.5 : isFlash ? 1.5 : draggingId === frag.id ? 1.2 : 0.7
+                                    }
+                                    filter={
+                                      isFlash
+                                        ? 'url(#collisionShake)'
+                                        : frag.isPlaced
+                                        ? 'url(#placedGlow2)'
+                                        : 'url(#fragmentShadow2)'
+                                    }
+                                    opacity={frag.isPlaced ? 0.97 : draggingId === frag.id ? 1 : 0.93}
+                                    style={{
+                                      transition:
+                                        draggingId === frag.id || isFlash ? 'none' : 'opacity 0.18s',
+                                    }}
+                                  />
+                                  <path
+                                    d={frag.pathData}
+                                    fill="none"
+                                    stroke="white"
+                                    strokeWidth="0.3"
+                                    opacity="0.45"
+                                    transform="translate(-0.25, -0.25)"
+                                  />
+                                </g>
                               </g>
-                            </g>
-                          </g>
-                        ))}
+                            );
+                          })}
+                      </g>
                     </svg>
+
+                    {collisionFlash && (
+                      <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-porcelain-youlihong/95 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-lg animate-fade-in z-10">
+                        <AlertCircle size={14} />
+                        碎片重叠，请调整位置
+                      </div>
+                    )}
 
                     {stage === 'finished' && score && (
                       <div className="absolute inset-0 bg-porcelain-inkbrown/40 backdrop-blur-[2px] flex items-center justify-center animate-fade-in">
@@ -551,24 +722,30 @@ export default function RestorationSection({ onOpenDetail }: Props) {
                           </div>
                           <div
                             className="font-serif text-4xl font-bold mb-2"
-                            style={{ fontFamily: '"Noto Serif SC", serif', color: gradeColors[score.grade].text }}
+                            style={{
+                              fontFamily: '"Noto Serif SC", serif',
+                              color: gradeColors[score.grade].text,
+                            }}
                           >
                             {score.totalScore}
                             <span className="text-lg text-porcelain-inkbrown/40 ml-1">分</span>
                           </div>
-                          <p className="text-sm text-porcelain-inkbrown/70 leading-relaxed mb-5" style={{ fontFamily: '"Noto Serif SC", serif' }}>
+                          <p
+                            className="text-sm text-porcelain-inkbrown/70 leading-relaxed mb-5"
+                            style={{ fontFamily: '"Noto Serif SC", serif' }}
+                          >
                             "{score.feedback}"
                           </p>
                           <div className="grid grid-cols-3 gap-2 mb-5">
-                            <div className="p-2 bg-porcelain-scroll/40 rounded-lg">
+                            <div className="p-2.5 bg-porcelain-scroll/40 rounded-lg">
                               <div className="text-[10px] text-porcelain-inkbrown/50 mb-0.5">完整度</div>
                               <div className="text-sm font-bold text-porcelain-celadon">{score.completenessScore}</div>
                             </div>
-                            <div className="p-2 bg-porcelain-scroll/40 rounded-lg">
+                            <div className="p-2.5 bg-porcelain-scroll/40 rounded-lg">
                               <div className="text-[10px] text-porcelain-inkbrown/50 mb-0.5">精准度</div>
                               <div className="text-sm font-bold text-porcelain-ji-blue">{score.accuracyScore}</div>
                             </div>
-                            <div className="p-2 bg-porcelain-scroll/40 rounded-lg">
+                            <div className="p-2.5 bg-porcelain-scroll/40 rounded-lg">
                               <div className="text-[10px] text-porcelain-inkbrown/50 mb-0.5">速度</div>
                               <div className="text-sm font-bold text-porcelain-gold">{score.speedScore}</div>
                             </div>
@@ -608,20 +785,34 @@ export default function RestorationSection({ onOpenDetail }: Props) {
                     </h5>
                     <ul className="space-y-2.5 text-xs text-porcelain-inkbrown/70" style={{ fontFamily: '"Noto Serif SC", serif' }}>
                       <li className="flex items-start gap-2">
-                        <span className="w-4 h-4 rounded-full bg-porcelain-gold/20 text-porcelain-gold flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5">1</span>
-                        <span>拖拽碎片至画布中对应位置，接近目标时会自动吸附</span>
+                        <span className="w-4 h-4 rounded-full bg-porcelain-gold/20 text-porcelain-gold flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5">
+                          1
+                        </span>
+                        <span>观察中央虚线轮廓，判断每个碎片在器物上的对应位置</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="w-4 h-4 rounded-full bg-porcelain-gold/20 text-porcelain-gold flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5">2</span>
-                        <span>选中碎片后，可使用下方按钮或 R 键旋转调整角度</span>
+                        <span className="w-4 h-4 rounded-full bg-porcelain-gold/20 text-porcelain-gold flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5">
+                          2
+                        </span>
+                        <span>拖拽碎片向目标位置靠近，接近时会自动吸附对齐</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="w-4 h-4 rounded-full bg-porcelain-gold/20 text-porcelain-gold flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5">3</span>
-                        <span>参考轮廓线和碎片形状特征，判断其在器物上的位置</span>
+                        <span className="w-4 h-4 rounded-full bg-porcelain-gold/20 text-porcelain-gold flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5">
+                          3
+                        </span>
+                        <span>使用下方按钮或按 R 键旋转碎片，调整到正确角度</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="w-4 h-4 rounded-full bg-porcelain-gold/20 text-porcelain-gold flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5">4</span>
-                        <span>碎片正确归位后会发出金色光芒并锁定</span>
+                        <span className="w-4 h-4 rounded-full bg-porcelain-gold/20 text-porcelain-gold flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5">
+                          4
+                        </span>
+                        <span>碎片不能重叠，发生碰撞时会红色高亮提示</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-porcelain-gold/20 text-porcelain-gold flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5">
+                          5
+                        </span>
+                        <span>正确归位后碎片会发出金色光芒并锁定位置</span>
                       </li>
                     </ul>
                   </div>
@@ -649,13 +840,13 @@ export default function RestorationSection({ onOpenDetail }: Props) {
                           <RotateCcw size={22} strokeWidth={1.8} />
                         </button>
                         <div className="w-20 h-20 bg-porcelain-scroll/40 rounded-xl flex items-center justify-center">
-                          <svg viewBox="0 0 100 100" className="w-14 h-14">
-                            <g transform={`translate(50, 50) rotate(${selectedFragment.rotation}) translate(${-selectedFragment.width / 2}, ${-selectedFragment.height / 2}) scale(${60 / Math.max(selectedFragment.width, selectedFragment.height)})`}>
+                          <svg viewBox="-40 -40 80 80" className="w-16 h-16">
+                            <g transform={`rotate(${selectedFragment.rotation})`}>
                               <path
                                 d={selectedFragment.pathData}
                                 fill={selectedFragment.color}
                                 stroke="#8B7355"
-                                strokeWidth="1.5"
+                                strokeWidth="1.2"
                               />
                             </g>
                           </svg>
@@ -668,9 +859,7 @@ export default function RestorationSection({ onOpenDetail }: Props) {
                           <RotateCw size={22} strokeWidth={1.8} />
                         </button>
                       </div>
-                      <p className="text-[10px] text-porcelain-inkbrown/40 text-center mt-3">
-                        提示：按键盘 R 键顺时针旋转
-                      </p>
+                      <p className="text-[10px] text-porcelain-inkbrown/40 text-center mt-3">提示：按键盘 R 键快速顺时针旋转</p>
                     </div>
                   )}
 
@@ -682,7 +871,10 @@ export default function RestorationSection({ onOpenDetail }: Props) {
                       <Lightbulb size={16} />
                       修复心法
                     </h5>
-                    <p className="text-xs text-porcelain-inkbrown/70 italic leading-relaxed" style={{ fontFamily: '"Noto Serif SC", serif' }}>
+                    <p
+                      className="text-xs text-porcelain-inkbrown/70 italic leading-relaxed"
+                      style={{ fontFamily: '"Noto Serif SC", serif' }}
+                    >
                       "{restorationTips[currentTip]}"
                     </p>
                   </div>

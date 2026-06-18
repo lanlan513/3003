@@ -1,10 +1,8 @@
 import type { RestorationArtifact, PlacedFragment, RestorationScore } from '@/types';
 
-const vaseOutline = `M 50 15 L 70 15 L 68 35 Q 88 45 82 75 Q 80 110 50 118 Q 20 110 18 75 Q 12 45 32 35 Z`;
-const bowlOutline = `M 15 40 Q 50 95 85 40 Q 80 20 50 20 Q 20 20 15 40 Z`;
-const jarOutline = `M 35 15 L 65 15 L 65 30 Q 90 40 85 75 Q 82 110 50 115 Q 18 110 15 75 Q 10 40 35 30 Z`;
-const plateOutline = `M 10 55 Q 50 85 90 55 Q 85 45 50 45 Q 15 45 10 55 Z`;
-const teapotOutline = `M 25 45 Q 10 50 15 70 Q 25 85 50 85 Q 75 85 85 70 L 85 60 Q 92 55 90 48 L 85 45 Z M 55 30 Q 65 20 75 30 Q 75 38 68 40 L 55 40 Z`;
+const vaseOutline = `M 50 12 L 70 12 L 68 32 Q 90 42 84 72 Q 82 108 50 116 Q 18 108 16 72 Q 10 42 32 32 Z`;
+const bowlOutline = `M 10 38 Q 50 98 90 38 Q 84 18 50 18 Q 16 18 10 38 Z`;
+const jarOutline = `M 32 12 L 68 12 L 68 28 Q 92 38 88 72 Q 84 108 50 114 Q 16 108 12 72 Q 8 38 32 28 Z`;
 
 export const restorationArtifacts: RestorationArtifact[] = [
   {
@@ -18,13 +16,44 @@ export const restorationArtifacts: RestorationArtifact[] = [
     accentColor: '#2C3E50',
     difficulty: 2,
     outlinePath: vaseOutline,
+    displayTransform: { scale: 3.0, offsetX: 100, offsetY: 65 },
     fragments: [
-      { id: 'f1-1', targetX: 50, targetY: 20, targetRotation: 0, pathData: 'M 40 0 L 60 0 L 58 25 L 42 25 Z', width: 20, height: 25, color: '#E8E4D8' },
-      { id: 'f1-2', targetX: 35, targetY: 45, targetRotation: -8, pathData: 'M 0 5 Q 10 0 25 5 Q 30 25 20 35 Q 5 30 0 20 Z', width: 30, height: 35, color: '#E0DCD0' },
-      { id: 'f1-3', targetX: 65, targetY: 45, targetRotation: 8, pathData: 'M 5 5 Q 20 0 30 5 Q 30 20 25 35 Q 10 30 0 20 Z', width: 30, height: 35, color: '#E8E4D8' },
-      { id: 'f1-4', targetX: 30, targetY: 80, targetRotation: -5, pathData: 'M 5 0 Q 25 5 30 30 Q 25 50 10 55 Q 0 35 0 15 Z', width: 30, height: 55, color: '#D8D4C8' },
-      { id: 'f1-5', targetX: 70, targetY: 80, targetRotation: 5, pathData: 'M 0 0 Q 25 5 30 30 Q 30 50 20 55 Q 5 50 0 30 Z', width: 30, height: 55, color: '#E8E4D8' },
-      { id: 'f1-6', targetX: 50, targetY: 105, targetRotation: 0, pathData: 'M 10 0 L 30 0 Q 40 15 30 28 L 10 28 Q 0 15 10 0 Z', width: 40, height: 28, color: '#D8D4C8' },
+      {
+        id: 'f1-1',
+        targetX: 50, targetY: 20, targetRotation: 0,
+        pathData: 'M -10 -13 L 10 -13 L 8 12 L -8 12 Z',
+        width: 20, height: 25, color: '#E8E4D8',
+      },
+      {
+        id: 'f1-2',
+        targetX: 32, targetY: 48, targetRotation: -10,
+        pathData: 'M -15 -8 Q -5 -15 10 -12 Q 14 8 4 18 Q -12 12 -16 2 Z',
+        width: 30, height: 33, color: '#E0DCD0',
+      },
+      {
+        id: 'f1-3',
+        targetX: 68, targetY: 48, targetRotation: 10,
+        pathData: 'M -12 -13 Q 2 -17 16 -11 Q 16 10 9 22 Q -7 15 -15 4 Z',
+        width: 31, height: 35, color: '#E8E4D8',
+      },
+      {
+        id: 'f1-4',
+        targetX: 28, targetY: 82, targetRotation: -6,
+        pathData: 'M -13 -15 Q 8 -12 14 12 Q 7 36 -8 40 Q -18 18 -15 -3 Z',
+        width: 32, height: 55, color: '#D8D4C8',
+      },
+      {
+        id: 'f1-5',
+        targetX: 72, targetY: 82, targetRotation: 6,
+        pathData: 'M -15 -12 Q 10 -10 16 14 Q 12 40 -3 43 Q -18 24 -16 0 Z',
+        width: 34, height: 55, color: '#E8E4D8',
+      },
+      {
+        id: 'f1-6',
+        targetX: 50, targetY: 106, targetRotation: 0,
+        pathData: 'M -20 -14 L 20 -14 Q 28 2 20 14 L -20 14 Q -28 2 -20 -14 Z',
+        width: 56, height: 28, color: '#D8D4C8',
+      },
     ],
     knowledge: [
       { title: '梅瓶源流', content: ['梅瓶最早出现于唐代，宋辽时期颇为流行，称为"经瓶"，作盛酒用器。明清时期，梅瓶逐渐从实用器转为陈设观赏瓷。', '其造型特点为小口、丰肩、敛腹、圈足，因口径之小仅能插梅枝，清代后得名"梅瓶"。'] },
@@ -50,13 +79,44 @@ export const restorationArtifacts: RestorationArtifact[] = [
     accentColor: '#8BA888',
     difficulty: 3,
     outlinePath: bowlOutline,
+    displayTransform: { scale: 3.4, offsetX: 88, offsetY: 78 },
     fragments: [
-      { id: 'f2-1', targetX: 30, targetY: 30, targetRotation: -15, pathData: 'M 0 5 Q 15 0 30 10 Q 35 25 20 35 Q 5 30 0 15 Z', width: 35, height: 35, color: '#C5D5CB' },
-      { id: 'f2-2', targetX: 60, targetY: 30, targetRotation: 15, pathData: 'M 5 0 Q 25 0 35 10 Q 35 25 25 35 Q 5 30 0 15 Z', width: 35, height: 35, color: '#B8C9BE' },
-      { id: 'f2-3', targetX: 45, targetY: 50, targetRotation: 0, pathData: 'M 0 5 Q 20 0 40 5 Q 45 30 35 45 Q 15 45 5 35 Z', width: 45, height: 45, color: '#C5D5CB' },
-      { id: 'f2-4', targetX: 25, targetY: 70, targetRotation: -10, pathData: 'M 5 0 Q 20 5 25 25 Q 20 40 5 45 Q 0 25 5 0 Z', width: 25, height: 45, color: '#B8C9BE' },
-      { id: 'f2-5', targetX: 65, targetY: 70, targetRotation: 10, pathData: 'M 0 0 Q 15 5 20 25 Q 15 40 0 40 Z', width: 20, height: 40, color: '#C5D5CB' },
-      { id: 'f2-6', targetX: 45, targetY: 80, targetRotation: 0, pathData: 'M 0 0 L 20 0 L 25 20 Q 15 30 5 25 Q 0 15 0 5 Z', width: 25, height: 30, color: '#B8C9BE' },
+      {
+        id: 'f2-1',
+        targetX: 28, targetY: 30, targetRotation: -18,
+        pathData: 'M -16 -8 Q -5 -15 13 -9 Q 17 7 5 20 Q -12 13 -17 0 Z',
+        width: 34, height: 35, color: '#C5D5CB',
+      },
+      {
+        id: 'f2-2',
+        targetX: 66, targetY: 30, targetRotation: 18,
+        pathData: 'M -14 -14 Q 0 -17 18 -10 Q 18 11 8 25 Q -9 16 -17 2 Z',
+        width: 36, height: 39, color: '#B8C9BE',
+      },
+      {
+        id: 'f2-3',
+        targetX: 48, targetY: 52, targetRotation: 0,
+        pathData: 'M -22 -8 Q -2 -16 20 -10 Q 24 19 14 35 Q -8 33 -18 21 Z',
+        width: 48, height: 51, color: '#C5D5CB',
+      },
+      {
+        id: 'f2-4',
+        targetX: 22, targetY: 70, targetRotation: -12,
+        pathData: 'M -11 -12 Q 3 -9 8 14 Q 2 37 -13 40 Q -19 16 -15 -3 Z',
+        width: 28, height: 52, color: '#B8C9BE',
+      },
+      {
+        id: 'f2-5',
+        targetX: 72, targetY: 72, targetRotation: 12,
+        pathData: 'M -13 -13 Q 4 -8 9 16 Q 3 35 -12 33 Q -19 12 -15 -3 Z',
+        width: 28, height: 48, color: '#C5D5CB',
+      },
+      {
+        id: 'f2-6',
+        targetX: 48, targetY: 88, targetRotation: 0,
+        pathData: 'M -14 -11 L 14 -9 L 18 12 Q 8 22 -3 18 Q -17 8 -14 -11 Z',
+        width: 35, height: 33, color: '#B8C9BE',
+      },
     ],
     knowledge: [
       { title: '汝窑之谜', content: ['汝窑烧造时间极短，仅北宋后期约20年，因宋徽宗时期"京师自置窑烧造"而成为官窑。', '汝窑以玛瑙入釉，釉面呈淡天青色，有"雨过天青云破处，这般颜色做将来"之说。传世汝窑器不足百件。'] },
@@ -82,12 +142,38 @@ export const restorationArtifacts: RestorationArtifact[] = [
     accentColor: '#A83232',
     difficulty: 1,
     outlinePath: jarOutline,
+    displayTransform: { scale: 3.0, offsetX: 98, offsetY: 62 },
     fragments: [
-      { id: 'f3-1', targetX: 50, targetY: 25, targetRotation: 0, pathData: 'M 35 0 L 65 0 L 65 20 L 35 20 Z', width: 30, height: 20, color: '#E8C89C' },
-      { id: 'f3-2', targetX: 35, targetY: 50, targetRotation: -10, pathData: 'M 0 0 L 30 5 L 35 30 L 25 40 L 5 35 Z', width: 35, height: 40, color: '#D4A574' },
-      { id: 'f3-3', targetX: 65, targetY: 50, targetRotation: 10, pathData: 'M 5 0 L 35 5 L 35 35 L 10 40 L 0 25 Z', width: 35, height: 40, color: '#C89868' },
-      { id: 'f3-4', targetX: 50, targetY: 90, targetRotation: 0, pathData: 'M 10 0 L 40 0 L 45 25 L 5 25 Z', width: 45, height: 25, color: '#D4A574' },
-      { id: 'f3-5', targetX: 30, targetY: 70, targetRotation: -5, pathData: 'M 5 0 L 25 5 L 25 35 L 5 30 Z', width: 25, height: 35, color: '#E8C89C' },
+      {
+        id: 'f3-1',
+        targetX: 50, targetY: 20, targetRotation: 0,
+        pathData: 'M -18 -10 L 18 -10 L 18 10 L -18 10 Z',
+        width: 36, height: 20, color: '#E8C89C',
+      },
+      {
+        id: 'f3-2',
+        targetX: 34, targetY: 50, targetRotation: -10,
+        pathData: 'M -18 -10 L 12 -8 L 16 17 L 6 27 L -14 22 Z',
+        width: 34, height: 39, color: '#D4A574',
+      },
+      {
+        id: 'f3-3',
+        targetX: 66, targetY: 50, targetRotation: 10,
+        pathData: 'M -15 -10 L 17 -6 L 19 22 L -5 30 L -16 14 Z',
+        width: 35, height: 40, color: '#C89868',
+      },
+      {
+        id: 'f3-4',
+        targetX: 50, targetY: 94, targetRotation: 0,
+        pathData: 'M -24 -12 L 22 -12 L 26 13 L -22 13 Z',
+        width: 52, height: 25, color: '#D4A574',
+      },
+      {
+        id: 'f3-5',
+        targetX: 30, targetY: 74, targetRotation: -5,
+        pathData: 'M -12 -12 L 12 -8 L 12 24 L -10 20 Z',
+        width: 26, height: 36, color: '#E8C89C',
+      },
     ],
     knowledge: [
       { title: '唐三彩艺术', content: ['唐三彩并非仅有三色，"三"为多之意。常见颜色有黄、绿、白、褐、蓝、黑等，以黄、绿、白三色为主。', '唐三彩以白色黏土为胎，先入窑素烧，再施釉彩二次低温烧成。主要用作明器，是研究唐代社会生活的重要实物资料。'] },
@@ -109,7 +195,34 @@ export function getRandomArtifact(): RestorationArtifact {
   return restorationArtifacts[index];
 }
 
-export function shuffleFragments(fragments: RestorationArtifact['fragments'], canvasWidth: number, canvasHeight: number) {
+export function canvasToLocal(
+  canvasX: number,
+  canvasY: number,
+  transform: { scale: number; offsetX: number; offsetY: number }
+): { x: number; y: number } {
+  return {
+    x: (canvasX - transform.offsetX) / transform.scale,
+    y: (canvasY - transform.offsetY) / transform.scale,
+  };
+}
+
+export function localToCanvas(
+  localX: number,
+  localY: number,
+  transform: { scale: number; offsetX: number; offsetY: number }
+): { x: number; y: number } {
+  return {
+    x: localX * transform.scale + transform.offsetX,
+    y: localY * transform.scale + transform.offsetY,
+  };
+}
+
+export function shuffleFragments(
+  fragments: RestorationArtifact['fragments'],
+  canvasWidth: number,
+  canvasHeight: number,
+  transform: { scale: number; offsetX: number; offsetY: number }
+) {
   const shuffled = [...fragments];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -117,56 +230,90 @@ export function shuffleFragments(fragments: RestorationArtifact['fragments'], ca
   }
 
   return shuffled.map((frag, idx) => {
-    const angle = (idx / shuffled.length) * Math.PI * 2 + Math.random() * 0.5;
-    const radius = Math.min(canvasWidth, canvasHeight) * 0.38;
-    const centerX = canvasWidth / 2;
-    const centerY = canvasHeight / 2;
+    const spreadAngle = (idx / shuffled.length) * Math.PI * 2 + Math.random() * 0.4;
+    const artifactCenterX = canvasWidth / 2;
+    const artifactCenterY = canvasHeight / 2;
+    const artifactRadius = Math.min(canvasWidth, canvasHeight) * 0.22;
+    const spreadRadius = Math.min(canvasWidth, canvasHeight) * 0.42;
+
+    const angle = spreadAngle;
+    let initX = artifactCenterX + Math.cos(angle) * spreadRadius;
+    let initY = artifactCenterY + Math.sin(angle) * spreadRadius;
+
+    initX = Math.max(30, Math.min(canvasWidth - 30, initX));
+    initY = Math.max(30, Math.min(canvasHeight - 30, initY));
+
+    const targetCanvas = localToCanvas(frag.targetX, frag.targetY, transform);
+    void artifactCenterX; void artifactCenterY; void artifactRadius; void targetCanvas;
 
     return {
       ...frag,
-      x: centerX + Math.cos(angle) * radius + (Math.random() - 0.5) * 30,
-      y: centerY + Math.sin(angle) * radius + (Math.random() - 0.5) * 30,
-      rotation: Math.floor(Math.random() * 4) * 90,
+      x: initX,
+      y: initY,
+      rotation: Math.floor(Math.random() * 8) * 45,
     };
   });
 }
 
+export function getFragmentAABB(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  rotationDeg: number,
+  scale: number = 1
+) {
+  const rad = (rotationDeg * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(rad));
+  const sin = Math.abs(Math.sin(rad));
+  const hw = (width * scale / 2) * cos + (height * scale / 2) * sin;
+  const hh = (width * scale / 2) * sin + (height * scale / 2) * cos;
+  return {
+    minX: x - hw,
+    maxX: x + hw,
+    minY: y - hh,
+    maxY: y + hh,
+  };
+}
+
 export function checkCollision(
-  frag1: { x: number; y: number; width: number; height: number },
-  frag2: { x: number; y: number; width: number; height: number }
+  fragA: { x: number; y: number; width: number; height: number; rotation: number; scale?: number },
+  fragB: { x: number; y: number; width: number; height: number; rotation: number; scale?: number }
 ): boolean {
-  const padding = 5;
+  const pad = 4;
+  const a = getFragmentAABB(fragA.x, fragA.y, fragA.width, fragA.height, fragA.rotation, fragA.scale ?? 1);
+  const b = getFragmentAABB(fragB.x, fragB.y, fragB.width, fragB.height, fragB.rotation, fragB.scale ?? 1);
   return !(
-    frag1.x + frag1.width / 2 + padding < frag2.x - frag2.width / 2 ||
-    frag1.x - frag1.width / 2 - padding > frag2.x + frag2.width / 2 ||
-    frag1.y + frag1.height / 2 + padding < frag2.y - frag2.height / 2 ||
-    frag1.y - frag1.height / 2 - padding > frag2.y + frag2.height / 2
+    a.maxX + pad < b.minX ||
+    a.minX - pad > b.maxX ||
+    a.maxY + pad < b.minY ||
+    a.minY - pad > b.maxY
   );
 }
 
 export function calculatePlacementAccuracy(
-  placedX: number,
-  placedY: number,
+  placedLocalX: number,
+  placedLocalY: number,
   placedRotation: number,
   targetX: number,
   targetY: number,
   targetRotation: number
 ): number {
   const distance = Math.sqrt(
-    Math.pow(placedX - targetX, 2) + Math.pow(placedY - targetY, 2)
+    Math.pow(placedLocalX - targetX, 2) + Math.pow(placedLocalY - targetY, 2)
   );
 
   let rotationDiff = Math.abs(placedRotation - targetRotation) % 360;
   if (rotationDiff > 180) rotationDiff = 360 - rotationDiff;
 
-  const distanceAccuracy = Math.max(0, 1 - distance / 40);
-  const rotationAccuracy = Math.max(0, 1 - rotationDiff / 30);
+  const distanceAccuracy = Math.max(0, 1 - distance / 12);
+  const rotationAccuracy = Math.max(0, 1 - rotationDiff / 25);
 
   return Math.round((distanceAccuracy * 0.7 + rotationAccuracy * 0.3) * 100);
 }
 
 export function isPlacementCorrect(accuracy: number): boolean {
-  return accuracy >= 60;
+  return accuracy >= 55;
 }
 
 export function calculateRestorationScore(
@@ -186,8 +333,8 @@ export function calculateRestorationScore(
       : 0;
   const accuracyScore = Math.round((avgAccuracy / 100) * 35);
 
-  const baseTime = totalFragments * 30;
-  const speedRatio = Math.max(0, Math.min(1, 1 - (elapsedSeconds - baseTime) / baseTime));
+  const baseTime = totalFragments * 28;
+  const speedRatio = Math.max(0, Math.min(1, 1 - Math.max(0, elapsedSeconds - baseTime) / baseTime));
   const speedScore = Math.round(speedRatio * 25);
 
   const totalScore = completenessScore + accuracyScore + speedScore;

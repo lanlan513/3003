@@ -228,6 +228,11 @@ export interface RestorationArtifact {
   difficulty: 1 | 2 | 3;
   fragments: RestorationFragment[];
   outlinePath: string;
+  displayTransform: {
+    scale: number;
+    offsetX: number;
+    offsetY: number;
+  };
   knowledge: {
     title: string;
     content: string[];

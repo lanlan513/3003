@@ -13,6 +13,7 @@ import RestorationSection from '@/components/sections/RestorationSection';
 import ExcavationSection from '@/components/sections/ExcavationSection';
 import GlazeLabSection from '@/components/sections/GlazeLabSection';
 import CuratorSection from '@/components/sections/CuratorSection';
+import MarketSection from '@/components/sections/MarketSection';
 import DetailModal from '@/components/common/DetailModal';
 import type { DetailData } from '@/types';
 
@@ -64,6 +65,8 @@ export default function Home() {
         <RestorationSection onOpenDetail={handleOpenDetail} />
 
         <CuratorSection onOpenDetail={handleOpenDetail} />
+
+        <MarketSection onOpenDetail={handleOpenDetail} />
       </main>
 
       <Footer />

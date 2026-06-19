@@ -568,4 +568,131 @@ export interface GraphPathStep {
   relationType?: GraphRelationType;
 }
 
-export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection' | 'exhibition' | 'exhibition-exhibit' | 'graph-node';
+export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection' | 'exhibition' | 'exhibition-exhibit' | 'graph-node' | 'market-item' | 'market-transaction';
+
+export type MarketPeriod = 
+  | 'shangzhou' 
+  | 'qinhan' 
+  | 'suitang' 
+  | 'song' 
+  | 'yuan' 
+  | 'ming' 
+  | 'qing' 
+  | 'republic' 
+  | 'modern';
+
+export type MarketCategory = 
+  | 'vase' 
+  | 'bowl' 
+  | 'jar' 
+  | 'plate' 
+  | 'teapot' 
+  | 'cup' 
+  | 'figure' 
+  | 'other';
+
+export type MarketCondition = 
+  | 'perfect' 
+  | 'excellent' 
+  | 'good' 
+  | 'fair' 
+  | 'damaged';
+
+export type MarketRarity = 
+  | 'common' 
+  | 'uncommon' 
+  | 'rare' 
+  | 'epic' 
+  | 'legendary';
+
+export type TransactionType = 'buy' | 'sell' | 'exhibit';
+
+export interface MarketItem {
+  id: string;
+  name: string;
+  period: MarketPeriod;
+  periodName: string;
+  category: MarketCategory;
+  categoryName: string;
+  rarity: MarketRarity;
+  condition: MarketCondition;
+  kiln: string;
+  description: string;
+  historicalSignificance: string;
+  authentication: 'unauthenticated' | 'authentic' | 'forgery';
+  authenticationNotes?: string;
+  baseValue: number;
+  currentMarketPrice: number;
+  priceTrend: 'rising' | 'stable' | 'falling';
+  priceChangePercent: number;
+  imagePrompt: string;
+  color: string;
+  features: string[];
+  exhibitIncome: number;
+  exhibitDuration: number;
+}
+
+export interface InventoryItem {
+  id: string;
+  itemId: string;
+  item: MarketItem;
+  purchasePrice: number;
+  purchaseTime: number;
+  isAuthenticated: boolean;
+  isExhibited: boolean;
+  exhibitEndTime?: number;
+  totalEarnings: number;
+}
+
+export interface Transaction {
+  id: string;
+  type: TransactionType;
+  itemId: string;
+  itemName: string;
+  amount: number;
+  timestamp: number;
+  note?: string;
+}
+
+export interface MarketEvent {
+  id: string;
+  name: string;
+  description: string;
+  type: 'positive' | 'negative' | 'neutral';
+  affectedPeriods: MarketPeriod[];
+  affectedCategories: MarketCategory[];
+  priceMultiplier: number;
+  duration: number;
+  startTime: number;
+}
+
+export interface MarketState {
+  capital: number;
+  reputation: number;
+  day: number;
+  inventory: InventoryItem[];
+  transactions: Transaction[];
+  activeEvents: MarketEvent[];
+  marketItems: MarketItem[];
+  lastUpdateTime: number;
+  shopLevel: number;
+  shopName: string;
+  totalProfit: number;
+  totalExhibitions: number;
+  totalSales: number;
+  totalPurchases: number;
+}
+
+export interface MarketStore extends MarketState {
+  buyItem: (itemId: string) => boolean;
+  sellItem: (inventoryId: string, price: number) => boolean;
+  authenticateItem: (inventoryId: string) => { success: boolean; isAuthentic: boolean; note?: string };
+  startExhibition: (inventoryId: string) => boolean;
+  endExhibition: (inventoryId: string) => number;
+  advanceDay: () => void;
+  updateMarketPrices: () => void;
+  generateMarketEvent: () => MarketEvent | null;
+  refreshMarketItems: () => void;
+  resetMarket: () => void;
+  upgradeShop: () => boolean;
+}

@@ -186,7 +186,6 @@ export default function CeramicDetectiveSection({ onOpenDetail }: Props) {
   };
 
   const { ref: introRef, isVisible: introVisible } = useScrollAnimation<HTMLDivElement>(0.1);
-  const { ref: gameRef, isVisible: gameVisible } = useScrollAnimation<HTMLDivElement>(0.1);
 
   return (
     <section id="detective" className="section-padding bg-gradient-to-b from-porcelain-paper to-porcelain-scroll/30 relative overflow-hidden">
@@ -286,7 +285,7 @@ export default function CeramicDetectiveSection({ onOpenDetail }: Props) {
           )}
 
           {(state.phase === 'investigating' || state.phase === 'guessing' || state.phase === 'result') && state.currentCase && (
-            <div ref={gameRef} className={`reveal ${gameVisible ? 'is-visible' : ''}`}>
+            <div className="animate-fade-in">
               <div className="bg-porcelain-scroll/50 rounded-2xl p-5 md:p-8 shadow-porcelain border border-porcelain-crackle/40">
                 <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
                   <div className="flex items-center gap-3">

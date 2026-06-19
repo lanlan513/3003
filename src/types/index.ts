@@ -568,7 +568,7 @@ export interface GraphPathStep {
   relationType?: GraphRelationType;
 }
 
-export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection' | 'exhibition' | 'exhibition-exhibit' | 'graph-node' | 'market-item' | 'market-transaction' | 'ceramic-material' | 'ceramic-type' | 'ceramic-experiment' | 'microscope-sample' | 'detective-case' | 'detective-knowledge';
+export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection' | 'exhibition' | 'exhibition-exhibit' | 'graph-node' | 'market-item' | 'market-transaction' | 'ceramic-material' | 'ceramic-type' | 'ceramic-experiment' | 'microscope-sample' | 'detective-case' | 'detective-knowledge' | 'disaster-event' | 'disaster-strategy' | 'disaster-record';
 
 export type MarketPeriod = 
   | 'shangzhou' 
@@ -876,4 +876,97 @@ export interface DetectiveState {
   totalCases: number;
   correctCases: number;
   showHint: boolean;
+}
+
+export type DisasterType = 'kiln_explosion' | 'transport_damage' | 'war_looting' | 'shipwreck';
+
+export type DisasterSeverity = 'minor' | 'moderate' | 'severe' | 'catastrophic';
+
+export type DisasterPhase = 'idle' | 'triggered' | 'responding' | 'resolving' | 'report';
+
+export interface MitigationStrategy {
+  id: string;
+  name: string;
+  description: string;
+  cost: number;
+  effectiveness: number;
+  applicableDisasters: DisasterType[];
+  icon: string;
+  color: string;
+}
+
+export interface DisasterEvent {
+  id: string;
+  type: DisasterType;
+  name: string;
+  description: string;
+  severity: DisasterSeverity;
+  baseDamage: number;
+  affectedItems: number;
+  duration: number;
+  icon: string;
+  color: string;
+  historicalReference: string;
+  imagePrompt: string;
+}
+
+export interface ActiveDisaster {
+  event: DisasterEvent;
+  startTime: number;
+  selectedStrategies: string[];
+  actualDamage: number;
+  resolvedItems: number;
+  totalItems: number;
+  isResolved: boolean;
+}
+
+export interface DisasterHistoryRecord {
+  id: string;
+  event: DisasterEvent;
+  selectedStrategies: string[];
+  finalDamage: number;
+  itemsLost: number;
+  itemsSaved: number;
+  totalValueLost: number;
+  timestamp: number;
+  dayNumber: number;
+  severityRating: number;
+}
+
+export interface DisasterReport {
+  totalEvents: number;
+  eventsByType: Record<DisasterType, number>;
+  totalDamage: number;
+  totalItemsLost: number;
+  totalValueLost: number;
+  averageDamagePerEvent: number;
+  bestStrategy: string;
+  worstEvent: DisasterHistoryRecord | null;
+  mostCommonType: DisasterType;
+  survivalRate: number;
+  insights: string[];
+}
+
+export interface DisasterState {
+  phase: DisasterPhase;
+  activeDisaster: ActiveDisaster | null;
+  history: DisasterHistoryRecord[];
+  availableStrategies: MitigationStrategy[];
+  disasterFund: number;
+  totalDisastersExperienced: number;
+  currentReport: DisasterReport | null;
+  inventoryValue: number;
+  inventoryCount: number;
+}
+
+export interface DisasterStore extends DisasterState {
+  triggerRandomDisaster: () => DisasterEvent | null;
+  selectStrategy: (strategyId: string) => boolean;
+  deselectStrategy: (strategyId: string) => boolean;
+  resolveDisaster: () => DisasterHistoryRecord | null;
+  generateReport: () => DisasterReport;
+  addToFund: (amount: number) => boolean;
+  resetDisaster: () => void;
+  setInventoryValue: (value: number, count: number) => void;
+  closeReport: () => void;
 }

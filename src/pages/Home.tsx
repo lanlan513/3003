@@ -17,6 +17,7 @@ import GlazeLabSection from '@/components/sections/GlazeLabSection';
 import CeramicCompositionSection from '@/components/sections/CeramicCompositionSection';
 import CuratorSection from '@/components/sections/CuratorSection';
 import MarketSection from '@/components/sections/MarketSection';
+import DisasterSection from '@/components/sections/DisasterSection';
 import DetailModal from '@/components/common/DetailModal';
 import type { DetailData } from '@/types';
 
@@ -76,6 +77,8 @@ export default function Home() {
         <CuratorSection onOpenDetail={handleOpenDetail} />
 
         <MarketSection onOpenDetail={handleOpenDetail} />
+
+        <DisasterSection onOpenDetail={handleOpenDetail} />
       </main>
 
       <Footer />

@@ -568,7 +568,7 @@ export interface GraphPathStep {
   relationType?: GraphRelationType;
 }
 
-export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection' | 'exhibition' | 'exhibition-exhibit' | 'graph-node' | 'market-item' | 'market-transaction';
+export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection' | 'exhibition' | 'exhibition-exhibit' | 'graph-node' | 'market-item' | 'market-transaction' | 'ceramic-material' | 'ceramic-type' | 'ceramic-experiment' | 'microscope-sample';
 
 export type MarketPeriod = 
   | 'shangzhou' 
@@ -762,4 +762,72 @@ export interface ProcessEditorResult {
   validationIssues: ProcessValidationIssue[];
   orderPenalty: number;
   dependencyPenalty: number;
+}
+
+export interface CeramicMaterial {
+  id: string;
+  name: string;
+  chineseName: string;
+  category: 'clay' | 'flux' | 'filler';
+  color: string;
+  description: string;
+  chemicalFormula: string;
+  origin: string;
+  meltingPoint: number;
+  properties: {
+    plasticity: number;
+    sinterability: number;
+    whiteness: number;
+    refractoriness: number;
+  };
+  impact: {
+    hardness: number;
+    color: number;
+    translucency: number;
+    shrinkage: number;
+  };
+  historicalNote: string;
+}
+
+export interface CeramicType {
+  id: string;
+  name: string;
+  dynasty: string;
+  color: string;
+  description: string;
+  composition: { materialId: string; ratio: number }[];
+  properties: {
+    hardness: number;
+    whiteness: number;
+    translucency: number;
+    thermalStability: number;
+    glazeSmoothness: number;
+  };
+  firingTemperature: number;
+  atmosphere: 'oxidation' | 'reduction' | 'neutral';
+  famousPieces: string[];
+  imagePrompt: string;
+}
+
+export interface CeramicExperimentResult {
+  hardness: number;
+  color: string;
+  translucency: number;
+  shrinkage: number;
+  qualityGrade: '精品' | '佳品' | '合格品' | '次品' | '废品';
+  description: string;
+  microstructure: 'crystalline' | 'glassy' | 'mixed' | 'porous' | 'amorphous';
+  crystalContent: number;
+  glassPhase: number;
+  porosity: number;
+}
+
+export interface MicroscopeSample {
+  id: string;
+  name: string;
+  materialId?: string;
+  magnification: number;
+  description: string;
+  features: string[];
+  imagePrompt: string;
 }

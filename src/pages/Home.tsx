@@ -13,6 +13,7 @@ import PotteryGameSection from '@/components/sections/PotteryGameSection';
 import RestorationSection from '@/components/sections/RestorationSection';
 import ExcavationSection from '@/components/sections/ExcavationSection';
 import GlazeLabSection from '@/components/sections/GlazeLabSection';
+import CeramicCompositionSection from '@/components/sections/CeramicCompositionSection';
 import CuratorSection from '@/components/sections/CuratorSection';
 import MarketSection from '@/components/sections/MarketSection';
 import DetailModal from '@/components/common/DetailModal';
@@ -56,6 +57,8 @@ export default function Home() {
         <ShapesSection onOpenDetail={handleOpenDetail} />
 
         <CraftsSection onOpenDetail={handleOpenDetail} />
+
+        <CeramicCompositionSection onOpenDetail={handleOpenDetail} />
 
         <ProcessEditorSection onOpenDetail={handleOpenDetail} />
 

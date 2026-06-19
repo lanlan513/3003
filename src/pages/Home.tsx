@@ -11,6 +11,7 @@ import CraftsSection from '@/components/sections/CraftsSection';
 import PotteryGameSection from '@/components/sections/PotteryGameSection';
 import RestorationSection from '@/components/sections/RestorationSection';
 import ExcavationSection from '@/components/sections/ExcavationSection';
+import GlazeLabSection from '@/components/sections/GlazeLabSection';
 import DetailModal from '@/components/common/DetailModal';
 import type { DetailData } from '@/types';
 
@@ -56,6 +57,8 @@ export default function Home() {
         <PotteryGameSection onOpenDetail={handleOpenDetail} />
 
         <ExcavationSection onOpenDetail={handleOpenDetail} />
+
+        <GlazeLabSection onOpenDetail={handleOpenDetail} />
 
         <RestorationSection onOpenDetail={handleOpenDetail} />
       </main>

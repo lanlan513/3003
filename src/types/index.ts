@@ -429,6 +429,57 @@ export interface TradeEvent {
   imagePrompt: string;
 }
 
+export interface GlazeMineral {
+  id: string;
+  name: string;
+  category: 'base' | 'flux' | 'colorant' | 'stabilizer';
+  description: string;
+  defaultRatio: number;
+  minRatio: number;
+  maxRatio: number;
+  colorContribution: {
+    r: number;
+    g: number;
+    b: number;
+    opacity: number;
+  };
+  temperatureSensitivity: number;
+  atmosphereEffect: 'neutral' | 'oxidize' | 'reduce';
+}
+
+export interface GlazeFormula {
+  minerals: { mineralId: string; ratio: number }[];
+  totalRatio: number;
+}
+
+export interface FiringCondition {
+  temperature: number;
+  atmosphere: 'oxidation' | 'reduction' | 'neutral';
+  duration: number;
+  coolingRate: 'fast' | 'medium' | 'slow';
+}
+
+export interface GlazeLabResult {
+  color: string;
+  lightColor: string;
+  name: string;
+  description: string;
+  texture: 'glossy' | 'matte' | 'satin' | 'crystalline';
+  translucency: number;
+  crackleLevel: number;
+  flowLevel: number;
+}
+
+export interface GlazeExperiment {
+  id: string;
+  name: string;
+  formula: GlazeFormula;
+  firingCondition: FiringCondition;
+  result: GlazeLabResult;
+  createdAt: number;
+  notes: string;
+}
+
 export interface TradeData {
   routes: TradeRoute[];
   locations: TradeLocation[];

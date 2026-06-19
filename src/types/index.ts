@@ -969,4 +969,5 @@ export interface DisasterStore extends DisasterState {
   resetDisaster: () => void;
   setInventoryValue: (value: number, count: number) => void;
   closeReport: () => void;
+  resetAndTriggerNewDisaster: () => DisasterEvent | null;
 }

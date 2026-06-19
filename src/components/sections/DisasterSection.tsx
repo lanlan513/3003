@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   AlertTriangle,
   Flame,
@@ -74,6 +74,7 @@ const iconMap: Record<string, JSX.Element> = {
 export default function DisasterSection({ onOpenDetail }: Props) {
   const { ref, isVisible } = useScrollAnimation<HTMLDivElement>(0.1);
   const [activeView, setActiveView] = useState<'overview' | 'history'>('overview');
+  const [resolveRecord, setResolveRecord] = useState<DisasterHistoryRecord | null>(null);
 
   const {
     phase,
@@ -93,6 +94,7 @@ export default function DisasterSection({ onOpenDetail }: Props) {
     resetDisaster,
     closeReport,
     addToFund,
+    resetAndTriggerNewDisaster,
   } = useDisasterStore();
 
   const applicableStrategies = useMemo(() => {
@@ -149,11 +151,15 @@ export default function DisasterSection({ onOpenDetail }: Props) {
   }, [phase]);
 
   const handleResolve = useCallback(() => {
-    resolveDisaster();
+    const record = resolveDisaster();
+    if (record) {
+      setResolveRecord(record);
+    }
   }, [resolveDisaster]);
 
   const handleReset = useCallback(() => {
     resetDisaster();
+    setResolveRecord(null);
   }, [resetDisaster]);
 
   const handleAddFund = useCallback(() => {
@@ -166,7 +172,17 @@ export default function DisasterSection({ onOpenDetail }: Props) {
 
   const handleCloseReport = useCallback(() => {
     closeReport();
+    setResolveRecord(null);
   }, [closeReport]);
+
+  const handleNextDisaster = useCallback(() => {
+    setResolveRecord(null);
+    resetAndTriggerNewDisaster();
+  }, [resetAndTriggerNewDisaster]);
+
+  const handleViewFullReport = useCallback(() => {
+    generateReport();
+  }, [generateReport]);
 
   const handleViewHistoryRecord = useCallback(
     (record: DisasterHistoryRecord) => {
@@ -864,6 +880,146 @@ export default function DisasterSection({ onOpenDetail }: Props) {
     );
   };
 
+  const renderResolvingView = () => {
+    if (!resolveRecord || !activeDisaster) return null;
+    const event = resolveRecord.event;
+    const savedRatio = resolveRecord.itemsLost + resolveRecord.itemsSaved > 0
+      ? Math.round((resolveRecord.itemsSaved / (resolveRecord.itemsLost + resolveRecord.itemsSaved)) * 100)
+      : 100;
+    const damageRatio = event.baseDamage > 0
+      ? Math.round(((event.baseDamage - resolveRecord.finalDamage) / event.baseDamage) * 100)
+      : 0;
+
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div
+          className="relative overflow-hidden rounded-2xl p-6 md:p-8 border-2"
+          style={{
+            backgroundColor: event.color + '08',
+            borderColor: event.color + '30',
+          }}
+        >
+          <div className="text-center mb-8">
+            <div
+              className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 shadow-lg"
+              style={{ backgroundColor: event.color + '20', color: event.color }}
+            >
+              {iconMap[event.icon] || <AlertTriangle size={40} />}
+            </div>
+            <h3
+              className="font-serif text-2xl md:text-3xl font-bold mb-2"
+              style={{ fontFamily: '"Noto Serif SC", serif', color: event.color }}
+            >
+              {event.name} · 灾后结算
+            </h3>
+            <span
+              className="inline-block px-3 py-1 rounded-full text-xs font-bold text-white"
+              style={{ backgroundColor: severityColors[event.severity] }}
+            >
+              {severityNames[event.severity]}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-porcelain-paper rounded-xl p-4 text-center border border-porcelain-crackle/30">
+              <div className="text-3xl font-bold text-porcelain-youlihong mb-1">
+                {resolveRecord.finalDamage}
+              </div>
+              <div className="text-xs text-porcelain-inkbrown/60">实际损失点数</div>
+              <div className="text-[10px] text-porcelain-inkbrown/40 mt-0.5">
+                基础 {event.baseDamage}
+                {damageRatio > 0 && <span className="text-porcelain-celadon"> → 减免 {damageRatio}%</span>}
+              </div>
+            </div>
+            <div className="bg-porcelain-paper rounded-xl p-4 text-center border border-porcelain-crackle/30">
+              <div className="text-3xl font-bold text-porcelain-ji-blue mb-1">
+                {resolveRecord.itemsLost}
+              </div>
+              <div className="text-xs text-porcelain-inkbrown/60">损失藏品</div>
+            </div>
+            <div className="bg-porcelain-paper rounded-xl p-4 text-center border border-porcelain-crackle/30">
+              <div className="text-3xl font-bold text-porcelain-celadon mb-1">
+                {resolveRecord.itemsSaved}
+              </div>
+              <div className="text-xs text-porcelain-inkbrown/60">挽救藏品</div>
+              <div className="text-[10px] text-porcelain-celadon mt-0.5">
+                保存率 {savedRatio}%
+              </div>
+            </div>
+            <div className="bg-porcelain-paper rounded-xl p-4 text-center border border-porcelain-crackle/30">
+              <div className="text-3xl font-bold text-porcelain-gold mb-1">
+                {formatMoney(resolveRecord.totalValueLost)}
+              </div>
+              <div className="text-xs text-porcelain-inkbrown/60">经济损失</div>
+            </div>
+          </div>
+
+          {resolveRecord.selectedStrategies.length > 0 && (
+            <div className="bg-porcelain-scroll/40 rounded-xl p-4 mb-6 border border-porcelain-crackle/30">
+              <h4
+                className="font-serif text-sm font-bold text-porcelain-inkbrown mb-3 flex items-center gap-2"
+                style={{ fontFamily: '"Noto Serif SC", serif' }}
+              >
+                <ShieldCheck size={16} className="text-porcelain-celadon" />
+                已采用的减灾策略
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {resolveRecord.selectedStrategies.map((id) => {
+                  const strategy = availableStrategies.find((s) => s.id === id);
+                  if (!strategy) return null;
+                  return (
+                    <span
+                      key={id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
+                      style={{ backgroundColor: strategy.color + '15', color: strategy.color }}
+                    >
+                      {iconMap[strategy.icon] || <Shield size={12} />}
+                      {strategy.name}
+                      <span className="opacity-70">-{strategy.effectiveness}%</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {resolveRecord.selectedStrategies.length === 0 && (
+            <div className="bg-porcelain-youlihong/10 rounded-xl p-4 mb-6 border border-porcelain-youlihong/20">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={18} className="text-porcelain-youlihong" />
+                <span
+                  className="text-sm font-medium text-porcelain-youlihong"
+                  style={{ fontFamily: '"Noto Serif SC", serif' }}
+                >
+                  未采取任何减灾措施，承受了全部损失
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3 justify-center">
+            <button
+              onClick={handleViewFullReport}
+              className="inline-flex items-center gap-2 px-8 py-3 bg-porcelain-gold text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+              style={{ fontFamily: '"Noto Serif SC", serif' }}
+            >
+              <BarChart3 size={20} />
+              查看分析报告
+            </button>
+            <button
+              onClick={handleNextDisaster}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-porcelain-youlihong text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+              style={{ fontFamily: '"Noto Serif SC", serif' }}
+            >
+              <Zap size={18} />
+              再来一次
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderReportView = () => {
     if (!currentReport && history.length === 0) return null;
     const report = currentReport || generateReport();
@@ -1082,20 +1238,20 @@ export default function DisasterSection({ onOpenDetail }: Props) {
 
         <div className="flex flex-wrap gap-3 justify-center pt-4">
           <button
-            onClick={handleCloseReport}
-            className="inline-flex items-center gap-2 px-8 py-3 bg-porcelain-ji-blue text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+            onClick={handleNextDisaster}
+            className="inline-flex items-center gap-2 px-8 py-3 bg-porcelain-youlihong text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
             style={{ fontFamily: '"Noto Serif SC", serif' }}
           >
-            <RotateCcw size={20} />
-            继续模拟
+            <Zap size={20} />
+            下一次灾难
           </button>
           <button
-            onClick={handleTrigger}
+            onClick={handleCloseReport}
             className="inline-flex items-center gap-2 px-6 py-3 bg-porcelain-paper border border-porcelain-crackle/50 text-porcelain-inkbrown/70 rounded-xl font-medium hover:bg-porcelain-scroll/50 transition-all"
             style={{ fontFamily: '"Noto Serif SC", serif' }}
           >
-            <Zap size={18} />
-            再来一次
+            <RotateCcw size={20} />
+            返回首页
           </button>
         </div>
       </div>
@@ -1117,10 +1273,11 @@ export default function DisasterSection({ onOpenDetail }: Props) {
         />
 
         <div ref={ref} className={`reveal ${isVisible ? 'is-visible' : ''}`}>
-          {phase === 'idle' && renderIdleView()}
+          {phase === 'idle' && !currentReport && renderIdleView()}
           {phase === 'triggered' && renderTriggeredView()}
           {phase === 'responding' && renderRespondingView()}
-          {(phase === 'report' || currentReport) && renderReportView()}
+          {phase === 'resolving' && renderResolvingView()}
+          {phase === 'report' && currentReport && renderReportView()}
         </div>
       </div>
     </section>

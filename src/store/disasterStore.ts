@@ -33,7 +33,7 @@ export const useDisasterStore = create<DisasterStore>((set, get) => ({
 
   triggerRandomDisaster: (): DisasterEvent | null => {
     const state = get();
-    if (state.phase !== 'idle') return null;
+    if (state.phase !== 'idle' && state.phase !== 'report') return null;
 
     const event = generateDisasterEvent();
 
@@ -48,6 +48,7 @@ export const useDisasterStore = create<DisasterStore>((set, get) => ({
         totalItems: Math.min(state.inventoryCount, event.affectedItems),
         isResolved: false,
       },
+      currentReport: null,
     });
 
     return event;
@@ -160,6 +161,9 @@ export const useDisasterStore = create<DisasterStore>((set, get) => ({
       severityRating: damageCalc.severityRating,
     };
 
+    const updatedHistory = [record, ...state.history];
+    const report = generateDisasterReport(updatedHistory);
+
     set((state) => ({
       phase: 'report',
       activeDisaster: {
@@ -168,12 +172,12 @@ export const useDisasterStore = create<DisasterStore>((set, get) => ({
         actualDamage: damageCalc.actualDamage,
         resolvedItems: damageCalc.itemsSaved,
       },
-      history: [record, ...state.history],
+      history: updatedHistory,
       disasterFund: state.disasterFund - totalCost,
       totalDisastersExperienced: state.totalDisastersExperienced + 1,
       inventoryCount: Math.max(0, state.inventoryCount - damageCalc.itemsLost),
       inventoryValue: Math.max(0, state.inventoryValue - damageCalc.totalValueLost),
-      currentReport: generateDisasterReport([record, ...state.history]),
+      currentReport: report,
     }));
 
     return record;
@@ -201,7 +205,6 @@ export const useDisasterStore = create<DisasterStore>((set, get) => ({
       currentReport: null,
     });
   },
-
   setInventoryValue: (value: number, count: number): void => {
     set({
       inventoryValue: value,
@@ -212,8 +215,29 @@ export const useDisasterStore = create<DisasterStore>((set, get) => ({
   closeReport: (): void => {
     set({
       phase: 'idle',
+      activeDisaster: null,
       currentReport: null,
     });
+  },
+
+  resetAndTriggerNewDisaster: (): DisasterEvent | null => {
+    const event = generateDisasterEvent();
+
+    set((state) => ({
+      phase: 'triggered',
+      activeDisaster: {
+        event,
+        startTime: Date.now(),
+        selectedStrategies: [],
+        actualDamage: event.baseDamage,
+        resolvedItems: 0,
+        totalItems: Math.min(state.inventoryCount, event.affectedItems),
+        isResolved: false,
+      },
+      currentReport: null,
+    }));
+
+    return event;
   },
 }));
 

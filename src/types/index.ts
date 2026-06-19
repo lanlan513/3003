@@ -733,6 +733,14 @@ export interface ProcessNode {
   intensity: number;
 }
 
+export interface ProcessValidationIssue {
+  type: 'order' | 'dependency' | 'missing' | 'repeat';
+  severity: 'warning' | 'error';
+  stepId?: string;
+  stepName?: string;
+  message: string;
+}
+
 export interface ProcessEditorResult {
   id: string;
   processName: string;
@@ -751,4 +759,7 @@ export interface ProcessEditorResult {
     glossiness: number;
   };
   story: string;
+  validationIssues: ProcessValidationIssue[];
+  orderPenalty: number;
+  dependencyPenalty: number;
 }

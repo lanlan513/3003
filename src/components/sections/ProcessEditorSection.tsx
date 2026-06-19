@@ -1,14 +1,14 @@
 import { useState, useMemo, useRef } from 'react';
 import {
   Wind, Flame, Brush, Eye, Trash2, Play, RotateCcw, Sparkles,
-  ChevronUp, ChevronDown, GripVertical, AlertTriangle, Info, X, ArrowRight
+  ChevronUp, ChevronDown, GripVertical, AlertTriangle, Info, X, ArrowRight, AlertCircle, CheckCircle2
 } from 'lucide-react';
 import SectionTitle from '@/components/common/SectionTitle';
 import SealLabel from '@/components/common/SealLabel';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
-import { processSteps, getCategoryLabel, simulateProcess, getDefaultFlow } from '@/data/processEditor';
+import { processSteps, getCategoryLabel, simulateProcess, getDefaultFlow, validateProcess } from '@/data/processEditor';
 import { craftData } from '@/data/crafts';
-import type { ProcessStep, ProcessNode, ProcessEditorResult, ProcessCategory, DetailData } from '@/types';
+import type { ProcessStep, ProcessNode, ProcessEditorResult, ProcessCategory, DetailData, ProcessValidationIssue } from '@/types';
 
 interface Props {
   onOpenDetail: (data: DetailData) => void;
@@ -134,6 +134,20 @@ export default function ProcessEditorSection({ onOpenDetail }: Props) {
   const selectedGlaze = craftData.glazes[0];
 
   const sortedNodes = useMemo(() => [...nodes].sort((a, b) => a.order - b.order), [nodes]);
+
+  const validation = useMemo(() => validateProcess(nodes), [nodes]);
+
+  const issuesByStepId = useMemo(() => {
+    const map = new Map<string, ProcessValidationIssue[]>();
+    validation.issues.forEach(issue => {
+      if (issue.stepId) {
+        const existing = map.get(issue.stepId) || [];
+        existing.push(issue);
+        map.set(issue.stepId, existing);
+      }
+    });
+    return map;
+  }, [validation.issues]);
 
   const selectedNode = useMemo(
     () => nodes.find(n => n.instanceId === selectedInstanceId) || null,
@@ -285,6 +299,17 @@ export default function ProcessEditorSection({ onOpenDetail }: Props) {
 
   const handleViewDetail = () => {
     if (!result) return;
+    const penaltySection = result.orderPenalty > 0 || result.dependencyPenalty > 0 ? [{
+      title: '流程扣分',
+      content: [
+        result.orderPenalty > 0 ? `工序顺序错误：-${result.orderPenalty}分` : null,
+        result.dependencyPenalty > 0 ? `依赖缺失/工序重复：-${result.dependencyPenalty}分` : null,
+      ].filter(Boolean) as string[],
+    }] : [];
+    const issuesSection = result.validationIssues.length > 0 ? [{
+      title: '流程问题明细',
+      content: result.validationIssues.map((issue, i) => `${issue.severity === 'error' ? '⚠ 错误' : '⚡ 警告'}：${issue.message}`),
+    }] : [];
     onOpenDetail({
       type: 'pottery-result',
       id: result.id,
@@ -295,6 +320,8 @@ export default function ProcessEditorSection({ onOpenDetail }: Props) {
         { title: '工艺流程', content: [`共${result.stepsCount}道工序：${sortedNodes.map(n => processSteps.find(s => s.id === n.stepId)?.name).filter(Boolean).join(' → ')}`] },
         { title: '成品描述', content: [result.description, `釉色效果：${result.finalAppearance.texture}，${result.finalAppearance.pattern}`] },
         { title: '工艺参数', content: result.features },
+        ...penaltySection,
+        ...issuesSection,
         ...(result.flaws.length > 0 ? [{
           title: '瑕疵记录',
           content: result.flaws.map(f => `${f.name}：${f.description}（${f.severity === 'minor' ? '轻微' : f.severity === 'major' ? '严重' : '致命'}）`)
@@ -388,11 +415,28 @@ export default function ProcessEditorSection({ onOpenDetail }: Props) {
       onDrop={(e) => handleDropOnCanvas(e)}
     >
       <div className="px-4 py-3 bg-porcelain-paper/60 border-b border-porcelain-crackle/30 flex items-center justify-between">
-        <h4 className="font-serif text-sm font-bold text-porcelain-inkbrown flex items-center gap-2" style={{ fontFamily: '"Noto Serif SC", serif' }}>
-          <span className="w-2 h-2 rounded-full bg-porcelain-youlihong" />
-          工艺流程编辑
-          <span className="ml-1 text-xs font-normal text-porcelain-inkbrown/50">({nodes.length}步)</span>
-        </h4>
+        <div className="flex items-center gap-3">
+          <h4 className="font-serif text-sm font-bold text-porcelain-inkbrown flex items-center gap-2" style={{ fontFamily: '"Noto Serif SC", serif' }}>
+            <span className={`w-2 h-2 rounded-full ${validation.issues.length > 0 ? 'bg-porcelain-youlihong animate-pulse' : 'bg-porcelain-gold'}`} />
+            工艺流程编辑
+            <span className="ml-1 text-xs font-normal text-porcelain-inkbrown/50">({nodes.length}步)</span>
+          </h4>
+          {validation.issues.length > 0 ? (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-porcelain-youlihong/10 border border-porcelain-youlihong/30">
+              <AlertCircle size={13} className="text-porcelain-youlihong" />
+              <span className="text-[10px] font-bold text-porcelain-youlihong" style={{ fontFamily: '"Noto Serif SC", serif' }}>
+                {validation.issues.length}处问题
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-porcelain-gold/10 border border-porcelain-gold/30">
+              <CheckCircle2 size={13} className="text-porcelain-gold" />
+              <span className="text-[10px] font-bold text-porcelain-gold" style={{ fontFamily: '"Noto Serif SC", serif' }}>
+                流程合理
+              </span>
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           <button
             onClick={handleReset}
@@ -459,14 +503,33 @@ export default function ProcessEditorSection({ onOpenDetail }: Props) {
                       className={`group relative bg-porcelain-paper rounded-xl border-2 transition-all duration-200 cursor-pointer ${
                         isSelected
                           ? 'border-porcelain-gold shadow-lg scale-[1.01]'
-                          : 'border-porcelain-crackle/40 hover:border-porcelain-crackle/60 hover:shadow-md'
+                          : issuesByStepId.get(step.id)?.some(i => i.severity === 'error')
+                            ? 'border-porcelain-youlihong/70'
+                            : issuesByStepId.get(step.id)?.length
+                              ? 'border-porcelain-gold/70'
+                              : 'border-porcelain-crackle/40 hover:border-porcelain-crackle/60 hover:shadow-md'
                       }`}
                     >
+                      {issuesByStepId.get(step.id) && (
+                        <div className="absolute -top-1.5 -right-1.5 z-10">
+                          <div
+                            className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md ${
+                              issuesByStepId.get(step.id)!.some(i => i.severity === 'error')
+                                ? 'bg-porcelain-youlihong'
+                                : 'bg-porcelain-gold'
+                            }`}
+                          >
+                            <AlertTriangle size={10} className="text-white" />
+                          </div>
+                        </div>
+                      )}
                       <div className="p-3.5">
                         <div className="flex items-start gap-3">
                           <div className="flex flex-col items-center gap-1">
                             <div
-                              className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSelected ? 'ring-2 ring-porcelain-gold/30' : ''}`}
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center relative ${
+                                isSelected ? 'ring-2 ring-porcelain-gold/30' : ''
+                              } ${issuesByStepId.get(step.id)?.some(i => i.severity === 'error') ? 'ring-2 ring-porcelain-youlihong/50' : ''}`}
                               style={{ backgroundColor: `${step.color}18` }}
                             >
                               <StepIcon icon={step.icon} color={step.color} size={20} />
@@ -491,6 +554,18 @@ export default function ProcessEditorSection({ onOpenDetail }: Props) {
                               </div>
                               <span className="text-[10px] text-porcelain-inkbrown/40">{step.duration}</span>
                             </div>
+                            {issuesByStepId.get(step.id) && (
+                              <div className="mb-1 space-y-0.5">
+                                {issuesByStepId.get(step.id)!.slice(0, 1).map((issue, i) => (
+                                  <div key={i} className={`text-[10px] flex items-center gap-1 ${
+                                    issue.severity === 'error' ? 'text-porcelain-youlihong' : 'text-porcelain-gold'
+                                  }`}>
+                                    <AlertCircle size={10} />
+                                    <span className="truncate">{issue.message}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                             <p className="text-[11px] text-porcelain-inkbrown/60 line-clamp-1" style={{ fontFamily: '"Noto Serif SC", serif' }}>
                               {step.shortDescription}
                             </p>
@@ -699,6 +774,58 @@ export default function ProcessEditorSection({ onOpenDetail }: Props) {
               <EffectBar value={result.totalEffects.uniquenessBonus} label="独特加分" color="#C9A962" />
               <EffectBar value={result.totalEffects.riskFactor} label="风险系数" color="#C97B48" max={100} />
             </div>
+
+            {(result.orderPenalty > 0 || result.dependencyPenalty > 0) && (
+              <div className="p-3 rounded-lg bg-porcelain-youlihong/10 border border-porcelain-youlihong/20 mb-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <AlertCircle size={12} className="text-porcelain-youlihong flex-shrink-0" />
+                  <span className="text-[11px] font-bold text-porcelain-youlihong">流程问题扣分</span>
+                </div>
+                <div className="space-y-1">
+                  {result.orderPenalty > 0 && (
+                    <div className="text-[10px] text-porcelain-inkbrown/65 flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <ArrowRight size={10} />
+                        工序顺序错误
+                      </span>
+                      <span className="font-bold text-porcelain-youlihong">-{result.orderPenalty}分</span>
+                    </div>
+                  )}
+                  {result.dependencyPenalty > 0 && (
+                    <div className="text-[10px] text-porcelain-inkbrown/65 flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <AlertTriangle size={10} />
+                        依赖缺失/工序重复
+                      </span>
+                      <span className="font-bold text-porcelain-youlihong">-{result.dependencyPenalty}分</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {result.validationIssues.length > 0 && (
+              <div className="p-3 rounded-lg bg-porcelain-crackle/10 border border-porcelain-crackle/30 mb-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Info size={12} className="text-porcelain-inkbrown/70 flex-shrink-0" />
+                  <span className="text-[11px] font-bold text-porcelain-inkbrown/80">流程问题明细</span>
+                </div>
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {result.validationIssues.map((issue, i) => (
+                    <div key={i} className={`text-[10px] flex items-start gap-1.5 ${
+                      issue.severity === 'error' ? 'text-porcelain-youlihong' : 'text-porcelain-gold'
+                    }`}>
+                      {issue.severity === 'error' ? (
+                        <AlertCircle size={10} className="flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <AlertTriangle size={10} className="flex-shrink-0 mt-0.5" />
+                      )}
+                      <span>{issue.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {result.features.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-4">

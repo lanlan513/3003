@@ -1,4 +1,4 @@
-import type { ProcessStep, ProcessNode, ProcessEditorResult, ProcessEffect, PotteryFlaw } from '../types';
+import type { ProcessStep, ProcessNode, ProcessEditorResult, ProcessEffect, PotteryFlaw, ProcessValidationIssue } from '../types';
 import { craftData } from './crafts';
 
 export const processSteps: ProcessStep[] = [
@@ -581,6 +581,159 @@ const shiftColor = (color: string, amount: number): string => {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 };
 
+const categoryOrder: Record<string, number> = {
+  preparation: 0,
+  forming: 1,
+  decoration: 2,
+  glazing: 3,
+  firing: 4,
+  finishing: 5,
+};
+
+export const validateProcess = (nodes: ProcessNode[]): {
+  issues: ProcessValidationIssue[];
+  orderPenalty: number;
+  dependencyPenalty: number;
+  riskBonus: number;
+  flawBonus: number;
+} => {
+  const issues: ProcessValidationIssue[] = [];
+  let orderPenalty = 0;
+  let dependencyPenalty = 0;
+  let riskBonus = 0;
+  let flawBonus = 0;
+
+  if (nodes.length === 0) return { issues, orderPenalty, dependencyPenalty, riskBonus, flawBonus };
+
+  const sortedNodes = [...nodes].sort((a, b) => a.order - b.order);
+  const nodeSteps = sortedNodes
+    .map(n => ({ node: n, step: processSteps.find(s => s.id === n.stepId) }))
+    .filter(x => x.step) as { node: ProcessNode; step: ProcessStep }[];
+
+  const addedStepIds = new Set(nodeSteps.map(x => x.step.id));
+  const orderByInstance = new Map(sortedNodes.map(n => [n.instanceId, n.order]));
+
+  for (let i = 0; i < nodeSteps.length; i++) {
+    const { step } = nodeSteps[i];
+
+    if (step.requiredBefore) {
+      for (const beforeId of step.requiredBefore) {
+        if (!addedStepIds.has(beforeId)) continue;
+        const beforeNode = nodeSteps.find(x => x.step.id === beforeId);
+        if (beforeNode && beforeNode.node.order > nodeSteps[i].node.order) {
+          const beforeStep = beforeNode.step;
+          issues.push({
+            type: 'order',
+            severity: 'error',
+            stepId: step.id,
+            stepName: step.name,
+            message: `工序顺序错误：${step.name}应该在${beforeStep.name}之前，但当前顺序相反`,
+          });
+          orderPenalty += 8;
+          riskBonus += 15;
+          flawBonus += 1;
+        }
+      }
+    }
+
+    if (step.requiredAfter) {
+      for (const afterId of step.requiredAfter) {
+        if (!addedStepIds.has(afterId)) continue;
+        const afterNode = nodeSteps.find(x => x.step.id === afterId);
+        if (afterNode && afterNode.node.order < nodeSteps[i].node.order) {
+          const afterStep = afterNode.step;
+          issues.push({
+            type: 'order',
+            severity: 'error',
+            stepId: step.id,
+            stepName: step.name,
+            message: `工序顺序错误：${step.name}应该在${afterStep.name}之后，但当前顺序相反`,
+          });
+          orderPenalty += 8;
+          riskBonus += 15;
+          flawBonus += 1;
+        }
+      }
+    }
+
+    if (step.requiredBefore) {
+      for (const beforeId of step.requiredBefore) {
+        if (!addedStepIds.has(beforeId)) {
+          const missingStep = processSteps.find(s => s.id === beforeId);
+          if (missingStep) {
+            issues.push({
+              type: 'dependency',
+              severity: 'warning',
+              stepId: step.id,
+              stepName: step.name,
+              message: `缺少前置工序：${step.name}建议在${missingStep.name}之后进行，当前流程缺失${missingStep.name}`,
+            });
+            dependencyPenalty += 5;
+            riskBonus += 10;
+          }
+        }
+      }
+    }
+  }
+
+  for (let i = 1; i < nodeSteps.length; i++) {
+    const prevCat = nodeSteps[i - 1].step.category;
+    const currCat = nodeSteps[i].step.category;
+    if (categoryOrder[currCat] < categoryOrder[prevCat]) {
+      issues.push({
+        type: 'order',
+        severity: 'warning',
+        stepId: nodeSteps[i].step.id,
+        stepName: nodeSteps[i].step.name,
+        message: `流程顺序不合理：${getCategoryLabel(currCat)}工序(${nodeSteps[i].step.name})不应在${getCategoryLabel(prevCat)}工序(${nodeSteps[i - 1].step.name})之后`,
+      });
+      orderPenalty += 3;
+      riskBonus += 5;
+    }
+  }
+
+  const nonRepeatableSteps = new Set<string>();
+  for (const { step, node } of nodeSteps) {
+    if (!step.repeatable) {
+      if (nonRepeatableSteps.has(step.id)) {
+        issues.push({
+          type: 'repeat',
+          severity: 'warning',
+          stepId: step.id,
+          stepName: step.name,
+          message: `工序重复：${step.name}通常只执行一次，重复执行可能导致不良后果`,
+        });
+        dependencyPenalty += 4;
+        riskBonus += 12;
+      }
+      nonRepeatableSteps.add(step.id);
+    }
+  }
+
+  const essentialCats = ['preparation', 'forming', 'glazing', 'firing'];
+  const presentCats = new Set(nodeSteps.map(x => x.step.category));
+  for (const cat of essentialCats) {
+    if (!presentCats.has(cat as any)) {
+      issues.push({
+        type: 'missing',
+        severity: 'error',
+        message: `流程不完整：缺少${getCategoryLabel(cat)}环节，这是制瓷工艺的核心步骤`,
+      });
+      dependencyPenalty += 12;
+      riskBonus += 20;
+      flawBonus += 2;
+    }
+  }
+
+  return {
+    issues,
+    orderPenalty: Math.min(orderPenalty, 40),
+    dependencyPenalty: Math.min(dependencyPenalty, 35),
+    riskBonus: Math.min(riskBonus, 50),
+    flawBonus: Math.min(flawBonus, 4),
+  };
+};
+
 export const simulateProcess = (
   nodes: ProcessNode[],
   baseClayColor: string = '#FAF7F0',
@@ -588,13 +741,16 @@ export const simulateProcess = (
 ): ProcessEditorResult | null => {
   if (nodes.length === 0) return null;
 
+  const validation = validateProcess(nodes);
+  const { issues, orderPenalty, dependencyPenalty, riskBonus, flawBonus } = validation;
+
   const sortedNodes = [...nodes].sort((a, b) => a.order - b.order);
 
   const totalEffects: ProcessEffect = {
     qualityBonus: 0,
     artistryBonus: 0,
     uniquenessBonus: 0,
-    riskFactor: 10,
+    riskFactor: 10 + riskBonus,
     glazeInfluence: 0,
     colorShift: 0,
     textureChange: 0,
@@ -625,6 +781,8 @@ export const simulateProcess = (
   baseScore += totalEffects.artistryBonus * 0.5;
   baseScore += totalEffects.uniquenessBonus * 0.3;
   baseScore -= Math.max(0, totalEffects.riskFactor - 30) * 0.3;
+  baseScore -= orderPenalty;
+  baseScore -= dependencyPenalty;
 
   const stepBonus = Math.min(sortedNodes.length * 2, 20);
   baseScore += stepBonus;
@@ -632,7 +790,7 @@ export const simulateProcess = (
   const randomFactor = Math.random() * 20 - 10;
   let finalScore = Math.round(Math.max(0, Math.min(100, baseScore + randomFactor)));
 
-  const flaws = randomFlaw(totalEffects.riskFactor, 3);
+  const flaws = randomFlaw(totalEffects.riskFactor, 3 + flawBonus);
 
   const flawPenalty = flaws.reduce((sum, flaw) => {
     if (flaw.severity === 'minor') return sum + 3;
@@ -647,6 +805,9 @@ export const simulateProcess = (
 
   let primaryColor = mixColors(baseClayColor, baseGlazeColor, 0.5 + totalEffects.glazeInfluence / 200);
   primaryColor = shiftColor(primaryColor, Math.round(totalEffects.colorShift * 0.5));
+  if (orderPenalty > 10 || dependencyPenalty > 10) {
+    primaryColor = shiftColor(primaryColor, -Math.round((orderPenalty + dependencyPenalty) * 0.3));
+  }
   const secondaryColor = shiftColor(primaryColor, 25);
 
   const textureDescriptions = [
@@ -656,7 +817,9 @@ export const simulateProcess = (
     { threshold: 20, text: '肌理丰富' },
     { threshold: 100, text: '古朴粗犷' },
   ];
-  const textureDesc = textureDescriptions.find(t => totalEffects.textureChange <= t.threshold)?.text || '温润有泽';
+  let textureDesc = textureDescriptions.find(t => totalEffects.textureChange <= t.threshold)?.text || '温润有泽';
+  if (orderPenalty > 15) textureDesc = '粗糙不均';
+  else if (orderPenalty > 5) textureDesc = '略有瑕疵';
 
   const patternSteps = sortedNodes
     .map(n => processSteps.find(s => s.id === n.stepId))
@@ -664,13 +827,13 @@ export const simulateProcess = (
     .map(s => s!.name);
   const patternDesc = patternSteps.length > 0 ? patternSteps.join('+') : (hasKilnChange ? '窑变天纹' : '素面无纹');
 
-  const glossiness = Math.max(20, Math.min(100, 70 - totalEffects.textureChange + totalEffects.glazeInfluence * 0.3));
+  const glossiness = Math.max(20, Math.min(100, 70 - totalEffects.textureChange + totalEffects.glazeInfluence * 0.3 - orderPenalty * 0.5));
 
   const categoryCoverage = new Set(sortedNodes.map(n => {
     const step = processSteps.find(s => s.id === n.stepId);
     return step?.category;
   }));
-  const isCompleteProcess = ['preparation', 'forming', 'glazing', 'firing'].every(c => categoryCoverage.has(c as any));
+  const isCompleteProcess = ['preparation', 'forming', 'glazing', 'firing'].every(c => categoryCoverage.has(c as any)) && issues.filter(i => i.type === 'missing').length === 0;
 
   const processName = sortedNodes.length > 0
     ? stepInfos.slice(0, 3).join('→') + (stepInfos.length > 3 ? '...' : '')
@@ -682,15 +845,24 @@ export const simulateProcess = (
   if (totalEffects.artistryBonus >= 50) features.push('艺术价值极高');
   if (totalEffects.uniquenessBonus >= 40) features.push('独一无二的孤品');
   if (hasKilnChange) features.push('神奇窑变效果');
-  if (totalEffects.qualityBonus >= 40) features.push('品质精益求精');
+  if (totalEffects.qualityBonus >= 40 && orderPenalty === 0) features.push('品质精益求精');
   if (patternSteps.length > 0) features.push(`${patternDesc}装饰`);
+  if (orderPenalty > 10) features.push('⚠ 工序顺序存在问题');
+  if (dependencyPenalty > 10) features.push('⚠ 工序依赖不完整');
+
+  const hasOrderIssues = issues.some(i => i.type === 'order');
+  const hasDepIssues = issues.some(i => i.type === 'dependency' || i.type === 'missing');
+
+  const issueDesc = issues.length > 0
+    ? `。工艺流程存在${issues.length}处问题：${issues.slice(0, 2).map(i => i.message.split('：')[0]).join('、')}等`
+    : '';
 
   const stories: Record<string, string> = {
-    '精品': `这套${processName}工艺堪称匠心独运。${sortedNodes.length}道工序环环相扣，道道精心，凝聚匠人无数心血。最终成品${textureDesc}，${patternDesc}相得益彰，是人力与天工的完美结合。`,
-    '佳品': `这套工艺品质上佳。${sortedNodes.length}道工序层层递进，虽非完美无瑕，但处处可见匠心。${textureDesc}的胎釉，${patternDesc}的装饰，是一件值得珍藏的佳作。`,
-    '合格品': `这套工艺流程基本完整，成品是合格的实用器。虽然${flaws.length > 0 ? '有细微的' + flaws.map(f => f.name).join('、') : '略有瑕疵'}，但体现了制瓷过程的真实不易。`,
-    '次品': `这套工艺流程未能达到预期标准。${flaws.length > 0 ? '存在' + flaws.map(f => f.name).join('、') + '等缺陷' : '工艺安排有所欠缺'}，虽有遗憾，但也是探索之路上的宝贵经验。`,
-    '废品': `这套工艺流程在烧制中遭遇了挫折。${flaws.length > 0 ? (flaws.find(f => f.severity === 'fatal')?.description + '，') : ''}令人惋惜。但制瓷本就是"一窑穷一窑富"的冒险，唯有屡败屡战，方能成器。`,
+    '精品': `这套${processName}工艺堪称匠心独运。${sortedNodes.length}道工序环环相扣，道道精心，凝聚匠人无数心血${issueDesc}。最终成品${textureDesc}，${patternDesc}相得益彰，是人力与天工的完美结合。`,
+    '佳品': `这套工艺品质上佳${hasOrderIssues ? '，虽工序顺序略有瑕疵' : ''}。${sortedNodes.length}道工序层层递进，虽非完美无瑕，但处处可见匠心${hasDepIssues ? '，部分工序缺少前置准备' : ''}。${textureDesc}的胎釉，${patternDesc}的装饰，是一件值得珍藏的佳作。`,
+    '合格品': `这套工艺流程基本完整，成品是合格的实用器${issueDesc}。虽然${flaws.length > 0 ? '有' + flaws.map(f => f.name).join('、') + '等' : '略有'}瑕疵，但体现了制瓷过程的真实不易。`,
+    '次品': `这套工艺流程未能达到预期标准${issueDesc}。${flaws.length > 0 ? '存在' + flaws.map(f => f.name).join('、') + '等缺陷' : '工艺安排有所欠缺'}，${hasOrderIssues ? '工序顺序的混乱导致品质下降' : ''}，虽有遗憾，但也是探索之路上的宝贵经验。`,
+    '废品': `这套工艺流程在烧制中遭遇了挫折${issueDesc}。${flaws.length > 0 ? (flaws.find(f => f.severity === 'fatal')?.description + '，') : ''}${hasDepIssues ? '关键工序的缺失导致烧制失败，' : ''}令人惋惜。但制瓷本就是"一窑穷一窑富"的冒险，唯有屡败屡战，方能成器。`,
   };
 
   return {
@@ -702,7 +874,7 @@ export const simulateProcess = (
     stepsCount: sortedNodes.length,
     flaws,
     features,
-    description: `${sortedNodes.length}道工序组合而成的陶瓷制作工艺流程，涵盖${Array.from(categoryCoverage).map(c => getCategoryLabel(c as string)).join('、')}等环节。`,
+    description: `${sortedNodes.length}道工序组合而成的陶瓷制作工艺流程，涵盖${Array.from(categoryCoverage).map(c => getCategoryLabel(c as string)).join('、')}等环节${issueDesc}。`,
     finalAppearance: {
       primaryColor,
       secondaryColor,
@@ -711,6 +883,9 @@ export const simulateProcess = (
       glossiness: Math.round(glossiness),
     },
     story: stories[grade],
+    validationIssues: issues,
+    orderPenalty,
+    dependencyPenalty,
   };
 };
 

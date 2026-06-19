@@ -111,8 +111,6 @@ export interface CraftProcess {
   glazes: GlazeColor[];
 }
 
-export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection' | 'exhibition' | 'exhibition-exhibit';
-
 export type ArtifactRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 export type ArtifactType = 'shard' | 'complete';
 export type ArtifactCategory = 'vase' | 'bowl' | 'jar' | 'plate' | 'teapot' | 'cup' | 'other';
@@ -520,3 +518,54 @@ export interface Exhibition {
 }
 
 export type CuratorViewMode = 'drafts' | 'create' | 'edit' | 'preview' | 'gallery';
+
+export type GraphNodeType = 'dynasty' | 'kiln' | 'craft' | 'pattern' | 'shape' | 'glaze';
+
+export interface GraphNode {
+  id: string;
+  type: GraphNodeType;
+  name: string;
+  description: string;
+  color: string;
+  bgColor: string;
+  icon?: string;
+  details?: string[];
+  relatedIds?: string[];
+}
+
+export type GraphRelationType = 
+  | 'originated_in'
+  | 'flourished_in'
+  | 'uses_craft'
+  | 'decorated_with'
+  | 'shaped_as'
+  | 'applies_glaze'
+  | 'influenced'
+  | 'succeeded';
+
+export interface GraphRelation {
+  id: string;
+  source: string;
+  target: string;
+  type: GraphRelationType;
+  label: string;
+}
+
+export interface KnowledgeGraphData {
+  nodes: GraphNode[];
+  relations: GraphRelation[];
+}
+
+export interface GraphNodePosition {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+}
+
+export interface GraphPathStep {
+  nodeId: string;
+  relationType?: GraphRelationType;
+}
+
+export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection' | 'exhibition' | 'exhibition-exhibit' | 'graph-node';

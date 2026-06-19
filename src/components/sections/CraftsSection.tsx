@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Pickaxe, Flame, Wind, Brush, Eye, Info } from 'lucide-react';
+import { Pickaxe, Flame, Wind, Brush, Eye, Info, Network } from 'lucide-react';
 import SectionTitle from '@/components/common/SectionTitle';
 import SealLabel from '@/components/common/SealLabel';
+import KnowledgeGraph from '@/components/common/KnowledgeGraph';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import { craftData } from '@/data/crafts';
 import type { CraftStep, GlazeColor, DetailData } from '@/types';
@@ -306,6 +307,39 @@ export default function CraftsSection({ onOpenDetail }: Props) {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="mt-16 mb-6 flex items-center justify-center gap-3">
+          <span className="w-12 h-px bg-porcelain-gold/50" />
+          <h3
+            className="font-serif text-xl md:text-2xl font-bold text-porcelain-inkbrown flex items-center gap-2"
+            style={{ fontFamily: '"Noto Serif SC", serif' }}
+          >
+            <Network size={22} className="text-porcelain-gold" />
+            陶瓷知识关系图谱
+            <span className="w-3 h-3 rounded-full bg-porcelain-gold shadow-md" />
+          </h3>
+          <span className="w-12 h-px bg-porcelain-youlihong/50" />
+        </div>
+
+        <div
+          className={`reveal ${isVisible ? 'is-visible' : ''} bg-porcelain-scroll/30 rounded-2xl p-4 md:p-6 border border-porcelain-crackle/40 shadow-porcelain`}
+        >
+          <div className="flex items-start gap-3 mb-4">
+            <SealLabel text="络" size="md" />
+            <div>
+              <h4
+                className="font-serif text-lg md:text-xl font-bold text-porcelain-inkbrown mb-1"
+                style={{ fontFamily: '"Noto Serif SC", serif' }}
+              >
+                中华陶瓷知识网络
+              </h4>
+              <p className="text-sm text-porcelain-inkbrown/65 leading-relaxed max-w-3xl" style={{ fontFamily: '"Noto Serif SC", serif' }}>
+                朝代、窑口、工艺、纹样、器型、釉色——六维知识交织成网。点击任意节点探索关联，跟随推荐路径穿越千年陶瓷文明。
+              </p>
+            </div>
+          </div>
+          <KnowledgeGraph onOpenDetail={onOpenDetail} />
         </div>
       </div>
     </section>

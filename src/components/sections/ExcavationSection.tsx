@@ -78,7 +78,12 @@ export default function ExcavationSection({ onOpenDetail }: Props) {
   const [currentSiteId, setCurrentSiteId] = useState<string | null>(null);
   const [isDigging, setIsDigging] = useState(false);
   const [digResult, setDigResult] = useState<{ artifact: ExcavationArtifact; found: FoundArtifact } | null>(null);
-  const [selectedArtifact, setSelectedArtifact] = useState<FoundArtifact | null>(null);
+  const [selectedFoundId, setSelectedFoundId] = useState<string | null>(null);
+
+  const selectedArtifact = useMemo(
+    () => foundArtifacts.find(fa => fa.id === selectedFoundId) ?? null,
+    [foundArtifacts, selectedFoundId]
+  );
   const [categoryGuess, setCategoryGuess] = useState<ArtifactCategory | null>(null);
   const [identificationOptions, setIdentificationOptions] = useState<ExcavationArtifact[]>([]);
   const [showIdentificationResult, setShowIdentificationResult] = useState(false);
@@ -163,8 +168,6 @@ export default function ExcavationSection({ onOpenDetail }: Props) {
   const handleClassify = useCallback((foundId: string, category: ArtifactCategory) => {
     const found = foundArtifacts.find(f => f.id === foundId);
     if (!found) return;
-    const correctArtifact = excavationArtifacts.find(a => a.id === found.artifactId);
-    const isCorrect = correctArtifact?.category === category;
 
     setFoundArtifacts(prev =>
       prev.map(fa =>
@@ -187,16 +190,6 @@ export default function ExcavationSection({ onOpenDetail }: Props) {
       .slice(0, 3);
     const options = [...distractors, correct].sort(() => Math.random() - 0.5);
     setIdentificationOptions(options);
-
-    if (!isCorrect) {
-      setFoundArtifacts(prev =>
-        prev.map(fa =>
-          fa.id === foundId
-            ? { ...fa, categoryGuess: category }
-            : fa
-        )
-      );
-    }
   }, [foundArtifacts]);
 
   const handleIdentify = useCallback((foundId: string, selectedArtifactId: string) => {
@@ -239,7 +232,6 @@ export default function ExcavationSection({ onOpenDetail }: Props) {
           : fa
       )
     );
-    setSelectedArtifact(null);
   }, []);
 
   const handleViewArtifactDetail = useCallback((found: FoundArtifact) => {
@@ -305,7 +297,7 @@ export default function ExcavationSection({ onOpenDetail }: Props) {
         }`}
         style={{ backgroundColor: `${rc.bgColor}80` }}
         onClick={() => {
-          setSelectedArtifact(found);
+          setSelectedFoundId(found.id);
           setCategoryGuess(null);
           setIdentificationOptions([]);
           const siteArtifacts = excavationArtifacts.filter(a => a.originSite === found.siteId);
@@ -660,7 +652,7 @@ export default function ExcavationSection({ onOpenDetail }: Props) {
                             </button>
                             <button
                               onClick={() => {
-                                setSelectedArtifact(digResult.found);
+                                setSelectedFoundId(digResult.found.id);
                                 setCategoryGuess(null);
                                 const siteArtifacts = excavationArtifacts.filter(a => a.originSite === digResult.found.siteId);
                                 const correct = excavationArtifacts.find(a => a.id === digResult.found.artifactId)!;

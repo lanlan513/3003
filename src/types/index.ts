@@ -568,7 +568,7 @@ export interface GraphPathStep {
   relationType?: GraphRelationType;
 }
 
-export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection' | 'exhibition' | 'exhibition-exhibit' | 'graph-node' | 'market-item' | 'market-transaction' | 'ceramic-material' | 'ceramic-type' | 'ceramic-experiment' | 'microscope-sample';
+export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection' | 'exhibition' | 'exhibition-exhibit' | 'graph-node' | 'market-item' | 'market-transaction' | 'ceramic-material' | 'ceramic-type' | 'ceramic-experiment' | 'microscope-sample' | 'detective-case' | 'detective-knowledge';
 
 export type MarketPeriod = 
   | 'shangzhou' 
@@ -830,4 +830,50 @@ export interface MicroscopeSample {
   description: string;
   features: string[];
   imagePrompt: string;
+}
+
+export type ClueType = 'pattern' | 'glaze' | 'shape' | 'era' | 'base' | 'technique';
+
+export interface CeramicClue {
+  type: ClueType;
+  title: string;
+  description: string;
+  hint: string;
+  difficulty: 1 | 2 | 3;
+}
+
+export interface CeramicCase {
+  id: string;
+  name: string;
+  kiln: string;
+  kilnId: string;
+  dynasty: string;
+  period: string;
+  imagePrompt: string;
+  difficulty: 1 | 2 | 3 | 4 | 5;
+  clues: CeramicClue[];
+  analysis: {
+    reasoning: string[];
+    keyEvidence: string[];
+    commonMistakes: string[];
+  };
+  knowledge: {
+    title: string;
+    content: string;
+  }[];
+  color: string;
+}
+
+export type DetectivePhase = 'intro' | 'investigating' | 'guessing' | 'result';
+
+export interface DetectiveState {
+  currentCase: CeramicCase | null;
+  phase: DetectivePhase;
+  revealedClues: number[];
+  guessKiln: string;
+  guessDynasty: string;
+  score: number;
+  totalCases: number;
+  correctCases: number;
+  showHint: boolean;
 }

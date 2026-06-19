@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Scroll, Clock, MapPin, Layers, Flame, Sparkles, Globe, Pickaxe, Beaker, Palette, ShoppingBag, Workflow, FlaskConical } from 'lucide-react';
+import { Scroll, Clock, MapPin, Layers, Flame, Sparkles, Globe, Pickaxe, Beaker, Palette, ShoppingBag, Workflow, FlaskConical, Search } from 'lucide-react';
 
 const navItems = [
   { id: 'history', label: '发展历史', icon: Clock },
@@ -8,6 +8,7 @@ const navItems = [
   { id: 'regions', label: '主要产地', icon: MapPin },
   { id: 'shapes', label: '器型分类', icon: Layers },
   { id: 'crafts', label: '烧制工艺', icon: Flame },
+  { id: 'detective', label: '陶瓷侦探', icon: Search },
   { id: 'ceramic-composition', label: '成分解密', icon: FlaskConical },
   { id: 'process-editor', label: '流程编辑', icon: Workflow },
   { id: 'pottery-game', label: '瓷火模拟', icon: Sparkles },

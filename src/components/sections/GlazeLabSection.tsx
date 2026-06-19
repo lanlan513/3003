@@ -64,16 +64,16 @@ function saveExperiments(experiments: GlazeExperiment[]) {
   } catch {}
 }
 
-const VesselPreview = ({ result, vesselType, size = 'large' }: { result: GlazeLabResult; vesselType: VesselType; size?: 'small' | 'large' }) => {
+const VesselPreview = ({ result, vesselType, size = 'large', uniqueKey }: { result: GlazeLabResult; vesselType: VesselType; size?: 'small' | 'large'; uniqueKey?: string }) => {
   const isCrystalline = result.texture === 'crystalline';
   const isMatte = result.texture === 'matte';
   const w = size === 'large' ? 160 : 64;
   const h = size === 'large' ? 220 : 88;
+  const idSuffix = uniqueKey ? `${uniqueKey}_` : '';
 
-  const glazeFill = isCrystalline
-    ? `url(#cracklePattern_${vesselType})`
-    : result.color;
-  const glazeGradientId = `vesselGrad_${vesselType}_${size}`;
+  const glazeGradientId = `vesselGrad_${idSuffix}${vesselType}_${size}`;
+  const crystalPatternId = `crystalPattern_${idSuffix}${vesselType}_${size}`;
+  const highlightClipId = `highlightClip_${idSuffix}${vesselType}_${size}`;
   const highlightOpacity = isMatte ? '0.15' : '0.4';
 
   const vesselPath = (() => {
@@ -89,6 +89,8 @@ const VesselPreview = ({ result, vesselType, size = 'large' }: { result: GlazeLa
     }
   })();
 
+  const crystalDensity = size === 'large' ? 6 : 3;
+
   return (
     <svg width={w} height={h} viewBox="0 0 160 220" className="drop-shadow-2xl">
       <defs>
@@ -98,15 +100,34 @@ const VesselPreview = ({ result, vesselType, size = 'large' }: { result: GlazeLa
           <stop offset="100%" stopColor={result.color} />
         </radialGradient>
         {isCrystalline && (
-          <pattern id={`cracklePattern_${vesselType}`} patternUnits="userSpaceOnUse" width="12" height="12">
-            <rect width="12" height="12" fill={result.color} />
-            <path d="M0 0 L6 6 M6 0 L12 6 M0 6 L6 12 M6 6 L12 12" stroke={result.lightColor} strokeWidth="0.5" opacity="0.5" />
+          <pattern id={crystalPatternId} patternUnits="userSpaceOnUse" width="20" height="20">
+            <rect width="20" height="20" fill={`url(#${glazeGradientId})`} />
+            <g opacity="0.55">
+              <polygon
+                points="10,3 12,8 17,9 13,13 14,18 10,15 6,18 7,13 3,9 8,8"
+                fill={result.lightColor}
+                opacity="0.7"
+              />
+              <polygon
+                points="10,5 11.2,8.3 14.5,9 11.8,11.2 12.5,14.5 10,12.8 7.5,14.5 8.2,11.2 5.5,9 8.8,8.3"
+                fill="white"
+                opacity="0.35"
+              />
+            </g>
+            <g opacity="0.4">
+              <circle cx="3" cy="3" r="1.2" fill={result.lightColor} />
+              <circle cx="17" cy="17" r="0.8" fill="white" opacity="0.5" />
+              <circle cx="4" cy="16" r="0.6" fill={result.lightColor} opacity="0.6" />
+            </g>
           </pattern>
         )}
+        <clipPath id={highlightClipId}>
+          <ellipse cx="55" cy="80" rx="30" ry="60" />
+        </clipPath>
       </defs>
       <path
         d={vesselPath}
-        fill={`url(#${glazeGradientId})`}
+        fill={isCrystalline ? `url(#${crystalPatternId})` : `url(#${glazeGradientId})`}
         stroke={result.color}
         strokeWidth="1.5"
         opacity="0.95"
@@ -115,11 +136,31 @@ const VesselPreview = ({ result, vesselType, size = 'large' }: { result: GlazeLa
         d={vesselPath}
         fill="white"
         opacity={highlightOpacity}
-        clipPath="url(#highlightClip)"
+        clipPath={`url(#${highlightClipId})`}
       />
-      <clipPath id="highlightClip">
-        <ellipse cx="55" cy="80" rx="30" ry="60" />
-      </clipPath>
+      {isCrystalline && size === 'large' && (
+        <g opacity="0.5">
+          {Array.from({ length: crystalDensity }).map((_, i) => {
+            const cx = 50 + (i * 18) % 70;
+            const cy = 60 + Math.floor(i / 2) * 35;
+            const sizeC = 5 + (i % 3) * 2;
+            return (
+              <g key={i} transform={`translate(${cx},${cy})`}>
+                <polygon
+                  points={`0,${-sizeC} ${sizeC * 0.6},${-sizeC * 0.2} ${sizeC},0 ${sizeC * 0.6},${sizeC * 0.5} 0,${sizeC} ${-sizeC * 0.6},${sizeC * 0.5} ${-sizeC},0 ${-sizeC * 0.6},${-sizeC * 0.2}`}
+                  fill={result.lightColor}
+                  opacity="0.5"
+                />
+                <polygon
+                  points={`0,${-sizeC * 0.6} ${sizeC * 0.35},${-sizeC * 0.12} ${sizeC * 0.6},0 ${sizeC * 0.35},${sizeC * 0.3} 0,${sizeC * 0.6} ${-sizeC * 0.35},${sizeC * 0.3} ${-sizeC * 0.6},0 ${-sizeC * 0.35},${-sizeC * 0.12}`}
+                  fill="white"
+                  opacity="0.25"
+                />
+              </g>
+            );
+          })}
+        </g>
+      )}
       {result.crackleLevel > 20 && (
         <g opacity={result.crackleLevel / 200}>
           {Array.from({ length: Math.floor(result.crackleLevel / 12) }).map((_, i) => (
@@ -750,7 +791,7 @@ export default function GlazeLabSection({ onOpenDetail }: Props) {
                     ))}
                   </div>
 
-                  <VesselPreview result={result} vesselType={vesselType} size="large" />
+                  <VesselPreview result={result} vesselType={vesselType} size="large" uniqueKey="main" />
 
                   <div className="mt-5 text-center">
                     <h5
@@ -1140,7 +1181,7 @@ function ExperimentCard({
       onClick={() => !isEditing && onLoad(exp)}
     >
       <div className="flex items-center gap-3">
-        <VesselPreview result={exp.result} vesselType={vesselType} size="small" />
+        <VesselPreview result={exp.result} vesselType={vesselType} size="small" uniqueKey={exp.id} />
         <div className="flex-1 min-w-0">
           {isEditing ? (
             <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>

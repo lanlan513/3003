@@ -696,3 +696,59 @@ export interface MarketStore extends MarketState {
   resetMarket: () => void;
   upgradeShop: () => boolean;
 }
+
+export type ProcessCategory = 'preparation' | 'forming' | 'decoration' | 'glazing' | 'firing' | 'finishing';
+
+export interface ProcessEffect {
+  qualityBonus: number;
+  artistryBonus: number;
+  uniquenessBonus: number;
+  riskFactor: number;
+  glazeInfluence: number;
+  colorShift: number;
+  textureChange: number;
+}
+
+export interface ProcessStep {
+  id: string;
+  name: string;
+  category: ProcessCategory;
+  icon: string;
+  color: string;
+  description: string;
+  shortDescription: string;
+  effect: ProcessEffect;
+  requiredBefore?: string[];
+  requiredAfter?: string[];
+  repeatable: boolean;
+  duration: string;
+  difficulty: number;
+  tips: string;
+}
+
+export interface ProcessNode {
+  instanceId: string;
+  stepId: string;
+  order: number;
+  intensity: number;
+}
+
+export interface ProcessEditorResult {
+  id: string;
+  processName: string;
+  overallScore: number;
+  qualityGrade: PotteryResult['qualityGrade'];
+  totalEffects: ProcessEffect;
+  stepsCount: number;
+  flaws: PotteryFlaw[];
+  features: string[];
+  description: string;
+  finalAppearance: {
+    primaryColor: string;
+    secondaryColor: string;
+    texture: string;
+    pattern: string;
+    glossiness: number;
+  };
+  story: string;
+}

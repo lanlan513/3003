@@ -8,6 +8,7 @@ import TradeSection from '@/components/sections/TradeSection';
 import RegionsSection from '@/components/sections/RegionsSection';
 import ShapesSection from '@/components/sections/ShapesSection';
 import CraftsSection from '@/components/sections/CraftsSection';
+import ProcessEditorSection from '@/components/sections/ProcessEditorSection';
 import PotteryGameSection from '@/components/sections/PotteryGameSection';
 import RestorationSection from '@/components/sections/RestorationSection';
 import ExcavationSection from '@/components/sections/ExcavationSection';
@@ -55,6 +56,8 @@ export default function Home() {
         <ShapesSection onOpenDetail={handleOpenDetail} />
 
         <CraftsSection onOpenDetail={handleOpenDetail} />
+
+        <ProcessEditorSection onOpenDetail={handleOpenDetail} />
 
         <PotteryGameSection onOpenDetail={handleOpenDetail} />
 

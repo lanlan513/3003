@@ -12,6 +12,7 @@ import PotteryGameSection from '@/components/sections/PotteryGameSection';
 import RestorationSection from '@/components/sections/RestorationSection';
 import ExcavationSection from '@/components/sections/ExcavationSection';
 import GlazeLabSection from '@/components/sections/GlazeLabSection';
+import CuratorSection from '@/components/sections/CuratorSection';
 import DetailModal from '@/components/common/DetailModal';
 import type { DetailData } from '@/types';
 
@@ -61,6 +62,8 @@ export default function Home() {
         <GlazeLabSection onOpenDetail={handleOpenDetail} />
 
         <RestorationSection onOpenDetail={handleOpenDetail} />
+
+        <CuratorSection onOpenDetail={handleOpenDetail} />
       </main>
 
       <Footer />

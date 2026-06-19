@@ -111,7 +111,7 @@ export interface CraftProcess {
   glazes: GlazeColor[];
 }
 
-export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection';
+export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection' | 'exhibition' | 'exhibition-exhibit';
 
 export type ArtifactRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 export type ArtifactType = 'shard' | 'complete';
@@ -487,3 +487,36 @@ export interface TradeData {
   culturalInfluences: CulturalInfluence[];
   exportedArtifacts: ExportedArtifact[];
 }
+
+export interface ExhibitItem {
+  id: string;
+  foundArtifactId: string;
+  artifactId: string;
+  order: number;
+  curatorNote: string;
+  spotlightTheme?: string;
+}
+
+export interface ExhibitionTheme {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  bgGradient: string;
+  icon: string;
+}
+
+export interface Exhibition {
+  id: string;
+  title: string;
+  subtitle: string;
+  themeId: string;
+  description: string;
+  curatorName: string;
+  exhibits: ExhibitItem[];
+  createdAt: number;
+  updatedAt: number;
+  coverArtifacts?: string[];
+}
+
+export type CuratorViewMode = 'drafts' | 'create' | 'edit' | 'preview' | 'gallery';

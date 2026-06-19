@@ -100,14 +100,39 @@ export default function CuratorSection({ onOpenDetail }: Props) {
       try {
         const parsed = JSON.parse(savedArtifacts);
         if (Array.isArray(parsed)) {
-          setFoundArtifacts(parsed.filter((a: FoundArtifact) => a.stage === 'collected'));
+          const collected = parsed.filter((a: FoundArtifact) => a.stage === 'collected');
+          setFoundArtifacts(collected.length > 0 ? collected : generateMockCollection());
           return;
         }
       } catch {
         // ignore
       }
     }
-    setFoundArtifacts((prev) => (prev.length === 0 ? generateMockCollection() : prev));
+    setFoundArtifacts(generateMockCollection());
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const savedArtifacts = localStorage.getItem('ciyuntang_excavation_artifacts');
+      if (savedArtifacts) {
+        try {
+          const parsed = JSON.parse(savedArtifacts);
+          if (Array.isArray(parsed)) {
+            const collected = parsed.filter((a: FoundArtifact) => a.stage === 'collected');
+            setFoundArtifacts((prev) => {
+              if (collected.length === 0 && prev.length > 0) return prev;
+              if (JSON.stringify(collected.map(a => a.id).sort()) !== JSON.stringify(prev.map(a => a.id).sort())) {
+                return collected.length > 0 ? collected : prev;
+              }
+              return prev;
+            });
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -177,23 +202,30 @@ export default function CuratorSection({ onOpenDetail }: Props) {
     []
   );
 
-  const handleSave = useCallback(() => {
-    if (!currentExhibition) return;
+  const handleSave = useCallback(
+    (currentView: CuratorViewMode = 'edit') => {
+      if (!currentExhibition) return;
 
-    const { valid, errors } = validateExhibition(currentExhibition);
-    if (!valid) {
-      setValidationErrors(errors);
-      return;
-    }
+      const { valid, errors } = validateExhibition(currentExhibition);
+      if (!valid) {
+        setValidationErrors(errors);
+        if (currentView === 'preview' || currentView === 'gallery') {
+          setView('edit');
+        }
+        return;
+      }
 
-    const updated = { ...currentExhibition, updatedAt: Date.now() };
-    setExhibitions((prev) => {
-      const exists = prev.some((e) => e.id === updated.id);
-      return exists ? prev.map((e) => (e.id === updated.id ? updated : e)) : [...prev, updated];
-    });
-    setCurrentExhibition(updated);
-    setView('preview');
-  }, [currentExhibition]);
+      const updated = { ...currentExhibition, updatedAt: Date.now() };
+      setExhibitions((prev) => {
+        const exists = prev.some((e) => e.id === updated.id);
+        return exists ? prev.map((e) => (e.id === updated.id ? updated : e)) : [...prev, updated];
+      });
+      setCurrentExhibition(updated);
+      setValidationErrors([]);
+      setView('preview');
+    },
+    [currentExhibition]
+  );
 
   const handlePreview = useCallback((exh: Exhibition) => {
     setCurrentExhibition(exh);
@@ -969,7 +1001,7 @@ export default function CuratorSection({ onOpenDetail }: Props) {
                       继续编辑
                     </button>
                     <button
-                      onClick={handleSave}
+                      onClick={() => handleSave('preview')}
                       className="px-4 py-2 rounded-lg bg-porcelain-celadon text-white text-xs font-bold hover:bg-porcelain-celadon/90 transition-colors shadow-md flex items-center gap-1.5"
                     >
                       <Save size={14} />

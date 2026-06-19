@@ -111,7 +111,84 @@ export interface CraftProcess {
   glazes: GlazeColor[];
 }
 
-export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact';
+export type DetailType = 'history' | 'region' | 'shape' | 'craft' | 'timeline' | 'artifact' | 'glaze' | 'craft-evolution' | 'pottery-result' | 'restoration' | 'trade-route' | 'trade-event' | 'cultural-influence' | 'exported-artifact' | 'excavation-site' | 'excavation-artifact' | 'museum-collection';
+
+export type ArtifactRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+export type ArtifactType = 'shard' | 'complete';
+export type ArtifactCategory = 'vase' | 'bowl' | 'jar' | 'plate' | 'teapot' | 'cup' | 'other';
+export type ArtifactCondition = 'poor' | 'fair' | 'good' | 'excellent' | 'pristine';
+export type ProcessingStage = 'raw' | 'cleaned' | 'classified' | 'identified' | 'collected';
+
+export interface ExcavationSite {
+  id: string;
+  name: string;
+  shortName: string;
+  location: string;
+  era: string;
+  difficulty: 1 | 2 | 3 | 4 | 5;
+  description: string;
+  color: string;
+  bgColor: string;
+  features: string[];
+  famousFinds: string[];
+  artifactPoolIds: string[];
+  shardWeight: number;
+  imagePrompt: string;
+}
+
+export interface ExcavationArtifact {
+  id: string;
+  name: string;
+  type: ArtifactType;
+  category: ArtifactCategory;
+  era: string;
+  originKiln: string;
+  originSite: string;
+  rarity: ArtifactRarity;
+  color: string;
+  description: string;
+  historicalContext: string;
+  identificationPoints: string[];
+  material: string;
+  glazeColor?: string;
+  decoration?: string;
+  shapeFeatures?: string;
+  baseMark?: string;
+  referenceValue: string;
+  imagePrompt: string;
+  completeArtifactId?: string;
+}
+
+export interface FoundArtifact {
+  id: string;
+  artifactId: string;
+  foundAt: number;
+  siteId: string;
+  stage: ProcessingStage;
+  condition: ArtifactCondition;
+  cleanProgress: number;
+  categoryGuess?: ArtifactCategory;
+  identificationResult?: ExcavationArtifact;
+  museumNote?: string;
+  collectedAt?: number;
+}
+
+export interface MuseumCollection {
+  totalCollected: number;
+  byRarity: Record<ArtifactRarity, number>;
+  byEra: Record<string, number>;
+  byKiln: Record<string, number>;
+}
+
+export interface ExcavationState {
+  energy: number;
+  maxEnergy: number;
+  currentSiteId: string | null;
+  foundArtifacts: FoundArtifact[];
+  collection: MuseumCollection;
+  totalDigs: number;
+  lastDigTime: number;
+}
 
 export interface ClayType {
   id: string;

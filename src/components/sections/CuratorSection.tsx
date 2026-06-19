@@ -599,7 +599,7 @@ export default function CuratorSection({ onOpenDetail }: Props) {
                       预览
                     </button>
                     <button
-                      onClick={handleSave}
+                      onClick={() => handleSave()}
                       className="px-4 py-2 rounded-lg bg-porcelain-youlihong text-white text-xs font-bold hover:bg-porcelain-youlihong/90 transition-colors shadow-md flex items-center gap-1.5"
                     >
                       <Save size={14} />
